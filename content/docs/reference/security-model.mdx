@@ -1,0 +1,31 @@
+---
+id: security
+slug: reference/security-model
+label: Security model
+eyebrow: Reference
+title: Security model
+description: Collateralization, admin powers, resolution safety, CTF assumptions, and integration safety checks.
+status: Reference
+updated: 2026-05-24
+order: 550
+---
+
+## Collateralization
+
+Orderbook CTF positions are backed by collateral locked in ConditionalTokens. Parimutuel payouts are limited to the finalized payout pool. CLOB maker curves are collateralized by escrowed base inventory or quote collateral.
+
+There is no automatic liquidity guarantee. If no maker has posted collateralized liquidity, a book may exist by ID but still be empty.
+
+## Admin powers
+
+The current alpha is not governance-free. Operators can configure core addresses, fee splits, duration bounds, permissionless creation, creation fees, parimutuel settings, resolution windows, dispute bonds, vault routing, and ConditionalTokens references.
+
+Integrators should surface this as an actively governed alpha protocol.
+
+## CTF assumptions
+
+The protocol targets Gnosis ConditionalTokens compatibility. Combo behavior relies on standard CTF collection ID and position ID algebra. Wallet metadata support may vary because the protocol metadata helper lives on the diamond, not on every raw CTF wallet integration.
+
+## Integration safety
+
+Applications should preview routes, enforce slippage, check market timing, pass expected curve generations or commitments, avoid stale fills, and treat lazy books as a normal state rather than an indexer error.

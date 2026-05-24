@@ -1,0 +1,44 @@
+---
+id: indexing
+slug: reference/indexing
+label: Indexing
+eyebrow: Reference
+title: Indexing guide
+description: Events and read-model rules for markets, lazy books, combos, parimutuel pools, settlement, and vault activity.
+status: Reference
+updated: 2026-05-23
+order: 530
+---
+
+## Market discovery
+
+Index `MarketCreated` for market discovery, then enrich from `getMarketMetadata`, `getMarketInfo`, and `getMarketTokenInfo`.
+
+The event gives core identity data, but read functions provide current state, fee snapshots, trading start, position token type, and token IDs.
+
+## Lazy books
+
+Market creation gives deterministic YES and NO book IDs. It does not guarantee that a `BookCreated` event has been emitted for those side books.
+
+Indexers should:
+
+- Store deterministic side book IDs from `getMarketSideBook`.
+- Treat `isBookMaterialized(bookId) == false` as a valid pre-liquidity state.
+- Add full book records when `BookCreated` fires or when `getBookInfo` succeeds.
+- Track combo and ERC20 spot books from explicit `BookCreated` events.
+
+## Activity streams
+
+| Event family | Use |
+| --- | --- |
+| Market creation | Discovery and upcoming market calendars. |
+| Book creation | Materialized books, ERC20 spot books, and combo books. |
+| Curve posted or updated | Maker liquidity state. |
+| Curve filled or trade routed | Taker execution and volume. |
+| Parimutuel shares bought | Pool entry, implied probability, and share balances. |
+| Resolution finalized | Settlement cutover. |
+| Payout claimed or redeemed | Post-resolution user accounting. |
+
+## Combo indexing
+
+Combo books should store their leg list offchain from the transaction input or app metadata. The onchain book tells you the base token and position ID, but human-readable combo UX needs the leg markets and index sets.

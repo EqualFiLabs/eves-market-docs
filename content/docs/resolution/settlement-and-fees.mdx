@@ -1,0 +1,39 @@
+---
+id: settlement-fees
+slug: resolution/settlement-and-fees
+label: Settlement and fees
+eyebrow: Resolution
+title: Settlement and fees
+description: Redemption paths and the separate fee configurations for orderbook, spot, and parimutuel markets.
+status: Resolution
+updated: 2026-05-24
+order: 210
+---
+
+## Redemption
+
+Settlement is market-type aware. Orderbook CTF positions redeem through ConditionalTokens payout vectors. Parimutuel positions claim against a finalized pool snapshot.
+
+Before resolution, matching CTF YES and NO balances can merge back into collateral. After resolution, holders should follow the winning-side redemption path.
+
+## Fee configurations
+
+Fees are separated by market surface. Do not use legacy shared names or describe all markets as having the same creator fee path.
+
+| Surface | Fee config |
+| --- | --- |
+| Orderbook | `orderbookEntryFeeBps`, maker, creator, protocol, and vault split. |
+| Spot | `spotTradeFeeBps`, maker, protocol, and vault split. No creator fee. |
+| Parimutuel | `parimutuelEntryFeeBps`, creator, protocol, and vault split. |
+
+## Spot fee naming
+
+Spot uses trade fees. Avoid `SPOT_ENTRY_FEE_BPS` in docs and deploy guides. Use `SPOT_TRADE_FEE_BPS`.
+
+The internal book fee struct can map spot trade fee into a shared `entryFeeBps` field for execution accounting, but that is an implementation detail. Product and deployment docs should call it a spot trade fee.
+
+## Fee claiming
+
+Makers can claim maker fees where the CLOB accrues them. Eligible creators can claim creator fees for markets that support creator fees and satisfy the resolution eligibility rules.
+
+Spot books do not have a creator fee in the current protocol.

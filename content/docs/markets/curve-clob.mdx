@@ -1,0 +1,167 @@
+---
+id: curve-clob
+slug: markets/curve-clob
+label: Curve CLOB
+eyebrow: Markets
+title: Curve CLOB markets
+description: Maker curves, bids, asks, tick grids, execution, and inventory lifecycle for prediction books and combo books.
+status: Markets
+updated: 2026-05-24
+order: 130
+---
+
+## What The Curve CLOB Is
+
+The Curve CLOB is an onchain orderbook where maker liquidity is expressed as executable price schedules instead of only fixed-price orders.
+
+A normal limit order says:
+
+```text
+sell 100 YES at 0.55 until canceled
+```
+
+An Eves Market curve can say:
+
+```text
+sell 100 YES starting at 0.55, moving to 0.45 over 60 minutes
+```
+
+That difference matters. A flat curve is still a normal limit order, so Polymarket-style maker behavior is supported. But the native primitive lets price move with time, which lets makers express urgency, risk decay, event approach, inventory pressure, and volatility without canceling and reposting every quote.
+
+## Curve Anatomy
+
+Each curve has a small set of fields that define executable liquidity:
+
+| Field | Meaning |
+| --- | --- |
+| `volume` | Maximum base inventory or quote-backed size available on the curve. |
+| `startPrice` | Price at the beginning of the curve schedule. |
+| `endPrice` | Price at the end of the curve schedule. |
+| `durationMinutes` | How long the schedule runs before the curve expires. |
+| `profileId` | Shape used to move from `startPrice` to `endPrice`. |
+| `tickPresetId` | Book-level tick grid used where applicable. |
+
+The current executable price is computed onchain from `startPrice`, `endPrice`, `durationMinutes`, `profileId`, and the curve start time. The indexed orderbook can display the current price like a normal book level, but the underlying order is richer than a static level.
+
+## Flat Orders Are A Special Case
+
+Polymarket-compatible limit order behavior maps cleanly to a flat curve:
+
+```text
+limit price p
+startPrice = p
+endPrice = p
+profileId = linear
+durationMinutes = order lifetime
+```
+
+If `startPrice == endPrice`, the curve price does not move. That gives makers a straightforward compatibility mode for simple bids and asks, while still using the same posting, filling, canceling, and indexing path as time-aware curves.
+
+## Time-Aware Pricing
+
+Curves make time part of the order itself. The built-in profile shapes are:
+
+| Profile | Behavior | Example use |
+| --- | --- | --- |
+| Linear | Moves steadily from `startPrice` to `endPrice`. | Quote fades as an event gets closer. |
+| Step | Holds `startPrice`, then jumps to `endPrice` halfway through. | Scheduled repricing around a known time. |
+| Exponential decay | Moves quickly early, then approaches `endPrice`. | Aggressive inventory exit that slows after initial repricing. |
+| Custom | Contract-registered profile. | Specialized market-making strategies. |
+
+This is not just cosmetic. A maker can post a ladder where every level has its own slope. A top quote can decay quickly, deeper liquidity can move slowly, and stale inventory can become cheaper automatically as time passes.
+
+## Ask Curves And Bid Curves
+
+The same curve model supports both sides of the book:
+
+| Side | Maker escrows | Taker path |
+| --- | --- | --- |
+| Ask | Base inventory | Taker pays quote and receives base. |
+| Bid | Quote collateral | Taker sells base into maker demand. |
+
+For prediction books, base inventory is usually a YES, NO, or combo ERC1155 position. For standalone spot books, base inventory is an ERC20. Ask curves are the natural path for makers selling outcome exposure. Bid curves are the natural path for users exiting positions into maker demand.
+
+## Maker Strategies
+
+The curve system lets makers choose how much active management they want:
+
+| Strategy | Curve shape | Maker behavior |
+| --- | --- | --- |
+| Static quote | `startPrice == endPrice` | Behaves like a normal limit order. |
+| Fade quote | Price drifts away from best price over time. | Reduces stale-fill risk without immediate cancellation. |
+| Inventory exit | Price moves toward a more aggressive taker price. | Unwinds a position without manually chasing the book. |
+| Event approach | Price changes as expiry or a scheduled event approaches. | Encodes timing directly into liquidity. |
+| Laddered market making | Many curves across prices and durations. | Builds a full book with different risk profiles per level. |
+| Combo scenario making | Curves posted against combo ERC1155 inventory. | Prices full narratives, not just isolated binary legs. |
+
+Makers can still update actively. The important difference is that the order does useful work between updates.
+
+## Execution And Routing
+
+Takers do not need to understand the curve math to trade. The app and indexer can aggregate active curves into familiar book levels, route across the best executable curves, and submit fills with slippage protection.
+
+The execution path supports:
+
+| Primitive | Purpose |
+| --- | --- |
+| `previewCurveQuote` | Preview one curve before filling. |
+| `previewBestExecution` / `previewBookExecution` | Preview a routed multi-curve fill. |
+| `fillCurve` | Fill a specific curve. |
+| `fillBest` / `fillBookBest` | Fill through selected best routes. |
+| `getCurveCommitment` | Detect stale curve state before execution. |
+
+Fills should pass expected curve generations or commitments. This prevents a taker from filling stale maker inventory after a maker update. Apps should also avoid routing a user's own curve into their own taker fill.
+
+## Tick-Aware Pricing
+
+`getBookInfo` exposes `pricingMode`, `tickPresetId`, `tickSize`, `priceDenominator`, `minTick`, and `maxTick`. Frontends should snap user prices to the active book grid before building transactions.
+
+Prediction and combo books use payout-style pricing. ERC20 spot books use generic tick pricing from the selected preset.
+
+## Maker Lifecycle
+
+Makers can:
+
+| Action | Function family |
+| --- | --- |
+| Create outcome inventory | `splitInventory` |
+| Post one curve | `postCurve`, `postBidCurve`, `postBookCurve` |
+| Post many curves | `postCurvesBatch`, `postBidCurvesBatch`, `postBookCurvesBatch` |
+| Reprice curves | `updateCurve`, `updateCurvesBatch` |
+| Add size | `topUpCurvesBatch`, `splitAndTopUpCurvesBatch` |
+| Cancel liquidity | `cancelCurve`, `cancelCurvesBatch` |
+| Restore expired liquidity | `reactivateBookCurve` |
+
+Capital is escrowed according to the side. Ask-side ERC1155 inventory sits in protocol custody while quote-side collateral backs bids. Large maker operations should use batch functions where available.
+
+## Observed gas benchmarks
+
+The update benchmark below is from the current Base Sepolia alpha deployment. The USD estimates use the May 24, 2026 Base cost basis for this transaction: `824,083` gas ~= `$0.009` per 30-curve update.
+
+| Operation | Chain | Transaction | Block | Curves | Gas used | Calldata | USD estimate |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: |
+| Batch update curves | Base Sepolia | `0x843a0a41e846d893f7f8cf381b77ced02835090077f5db2a16748edbaeab2e1b` | `41908686` | `30` | `824,083` | `2,948 bytes` | `$0.009` |
+
+## Maker update costs
+
+These scenarios assume each maker manages one 30-curve book set and sends one `updateCurvesBatch` per cadence tick.
+
+| Scenario | Cadence | Updates per day | Daily cost | 30-day cost |
+| --- | ---: | ---: | ---: | ---: |
+| Active maker | `15 sec` | `5,760` | `$51.84` | `$1,555.20` |
+| Standard maker | `30 sec` | `2,880` | `$25.92` | `$777.60` |
+| Slow maker | `2 min` | `720` | `$6.48` | `$194.40` |
+| Passive maker | `5 min` | `288` | `$2.59` | `$77.76` |
+
+## Blast scenarios
+
+Blast costs scale by the number of 30-curve update batches. A 300-curve refresh is modeled as ten 30-curve batches; a 3,000-curve refresh is modeled as one hundred batches.
+
+| Scenario | Curves refreshed | Batch transactions | Gas estimate | One-shot cost |
+| --- | ---: | ---: | ---: | ---: |
+| Single maker blast | `30` | `1` | `824,083` | `$0.009` |
+| Ten-maker blast | `300` | `10` | `8,240,830` | `$0.09` |
+| Hundred-maker blast | `3,000` | `100` | `82,408,300` | `$0.90` |
+| Thousand-maker blast | `30,000` | `1,000` | `824,083,000` | `$9.00` |
+
+Use this as an observed benchmark, not a protocol guarantee. Gas can still vary with calldata shape, active curve state, compiler output, chain pricing, and future implementation changes.

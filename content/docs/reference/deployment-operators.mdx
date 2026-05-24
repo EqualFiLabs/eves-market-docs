@@ -1,0 +1,97 @@
+---
+id: deployment-operators
+slug: reference/deployment-operators
+label: Deployment operators
+eyebrow: Reference
+title: Deployment operators
+description: Required deployment inputs, generated addresses, and setter groups for a full protocol deploy.
+status: Reference
+updated: 2026-05-24
+order: 510
+---
+
+## ConditionalTokens
+
+The deploy path should use a standard Gnosis ConditionalTokens implementation, not the removed custom CTF token.
+
+If `CONDITIONAL_TOKENS` is provided, the deploy script wires that address. If it is omitted, the deploy script loads `CONDITIONAL_TOKENS_ARTIFACT` and deploys the Gnosis CTF artifact.
+
+| Variable | Source |
+| --- | --- |
+| `CONDITIONAL_TOKENS` | Optional existing compatible Gnosis CTF address. |
+| `CONDITIONAL_TOKENS_ARTIFACT` | Optional artifact path for deploying a standard Gnosis ConditionalTokens contract when no existing address is provided. |
+
+## Operator-provided addresses
+
+These must be chosen before deployment:
+
+- `EVEUSD_ONRAMP`
+- `EVEUSD_OFFRAMP`
+- `INITIAL_OWNER`
+- `EVE_TREASURY`
+- `FEE_RECIPIENT`
+- `FAUCET_OWNER`
+
+The current alpha uses EVE itself as the vote token. Do not configure or document a separate EVE votes token unless the protocol is intentionally changed.
+
+## Addresses produced by deployment
+
+These are normally not known before deployment when using the full script:
+
+- `CONDITIONAL_TOKENS` when no existing compatible address is provided.
+- `COLLATERAL_TOKEN`, resolved to the deployed EveUSD address.
+- `EVE_TOKEN`, which is also the vote token.
+- `STAKING_VAULT`, resolved to the deployed sEVEUSD vault.
+- `PARIMUTUEL_SHARE_TOKEN`
+- `EVEUSD`
+- `SEVEUSD_LENDING`
+- `MAKER_LENDING_ROUTER`
+- `FAUCET`
+- `DIAMOND`
+
+## Fee setters
+
+Use separate fee values by surface:
+
+| Item | Notes |
+| --- | --- |
+| `ORDERBOOK_ENTRY_FEE_BPS` | Entry or trade fee applied to orderbook CLOB fills. |
+| `ORDERBOOK_MAKER_FEE_BPS` | Maker share of orderbook fee pool. |
+| `ORDERBOOK_CREATOR_FEE_BPS` | Creator share for eligible orderbook markets. |
+| `ORDERBOOK_PROTOCOL_FEE_BPS` | Treasury share. |
+| `ORDERBOOK_VAULT_FEE_BPS` | Vault-routed share when enabled. |
+| `SPOT_TRADE_FEE_BPS` | Spot trade fee. Do not call this spot entry fee. |
+| `SPOT_MAKER_FEE_BPS` | Maker share of spot trade fees. |
+| `SPOT_PROTOCOL_FEE_BPS` | Treasury share of spot trade fees. |
+| `SPOT_VAULT_FEE_BPS` | Vault share of spot trade fees. |
+| `PARIMUTUEL_ENTRY_FEE_BPS` | Entry fee deducted from parimutuel buys. |
+| `PARIMUTUEL_CREATOR_FEE_BPS` | Creator share where eligible. |
+| `PARIMUTUEL_PROTOCOL_FEE_BPS` | Treasury share. |
+| `PARIMUTUEL_VAULT_FEE_BPS` | Vault share. |
+
+## Market controls
+
+- `MIN_MARKET_DURATION`
+- `MAX_MARKET_DURATION`
+- `MARKET_CREATION_BATCH_CAP`
+- `MARKET_CREATION_FEE`
+- `SPOT_BOOK_CREATION_FEE`
+- `MARKET_CREATION_BOND_EVE`
+- `PARIMUTUEL_MIN_ENTRY`
+- `PARIMUTUEL_EPOCH_WINDOW_CAP`
+- `PERMISSIONLESS_CREATION_ENABLED`
+
+`PARIMUTUEL_EPOCH_WINDOW_CAP` is seconds. It caps each market's custom `epochWindow`.
+
+## Resolution controls
+
+- `DISPUTE_WINDOW`
+- `CREATOR_SETTLE_GRACE`
+- `OPEN_RESOLUTION_TIMEOUT`
+- `DISPUTE_BOND_L1_EVE`
+- `DISPUTE_BOND_L2_EVE`
+- `DISPUTE_BOND_L1_ETH`
+- `DISPUTE_BOND_L2_ETH`
+- `EVE_VOTE_DURATION`
+- `EVE_VOTE_QUORUM`
+- `MAX_ESCALATION`

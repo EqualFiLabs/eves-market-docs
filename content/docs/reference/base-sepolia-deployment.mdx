@@ -1,0 +1,69 @@
+---
+id: base-sepolia-deployment
+slug: reference/base-sepolia-deployment
+label: Base Sepolia deployment
+eyebrow: Reference
+title: Base Sepolia deployment
+description: Current public Base Sepolia alpha deployment addresses, deployment block range, and integration notes.
+status: Reference
+updated: 2026-05-24
+order: 520
+---
+
+## Current status
+
+The current Base Sepolia alpha deployment includes 18 decimal eveUSD, standard Gnosis ConditionalTokens, scheduled market creation, lazy book materialization, combo books, parimutuel scheduling, and separate fee configs for orderbook, spot, and parimutuel surfaces.
+
+## Network
+
+| Field | Value |
+| --- | --- |
+| Chain | Base Sepolia (`84532`) |
+| Date | `2026-05-24` |
+| Deployer | `0x8d5BFd10408d6511Ec9A51139B8C7d75055DfaB6` |
+| Owner | `0x8d5BFd10408d6511Ec9A51139B8C7d75055DfaB6` |
+| Treasury | `0x8d5BFd10408d6511Ec9A51139B8C7d75055DfaB6` |
+| First deploy block | `41907604` |
+| Last deploy block | `41907676` |
+
+## Core contracts
+
+| Contract | Address |
+| --- | --- |
+| Diamond | `0xE5884831979eFD00019F89099a8d019A4e979480` |
+| ConditionalTokens | `0x210BF1c23FD323BeB1632393aC916B0BFA88C29e` |
+| Mock USDC | `0xb32D3Be8d0e139bE93038A3Fa418C9C218df2E10` |
+| Mock EVE / vote token | `0x66Ff7FA541d0E9b743007faB910F3D7dc38E42F9` |
+| EveUSD | `0x1B74fC221a7b2d96337a3f8E828e6fC9b5e789a9` |
+| sEveUSD Vault | `0x2cB1c1ac73638b04a855f4C43950F2eFF86915d7` |
+| sEveUSD Lending | `0xd288Cd7F70A380Ac7f1b6FeFC30215b5c2Fb6Bd9` |
+| MakerLendingRouter | `0x37ac43e45E61ABb8BbE06E8788ed325e95A5074f` |
+| Faucet | `0x8E69928B5CAD7772D6267f24d5a1be3f1e2Caf25` |
+| ParimutuelShareToken | `0xA1EA0b24eB196790E2BC8Ac36E01FB1E1ef232D1` |
+
+## Active configuration
+
+| Setting | Value |
+| --- | --- |
+| Permissionless creation | `true` |
+| Market creation fee | `25 eveUSD` |
+| Spot book creation fee | `250 eveUSD` |
+| Market creation bond | `100,000 EVE` |
+| Market creation batch cap | `30` |
+| Orderbook fee | `1%` entry/trade fee; maker `40%`, creator `5%`, protocol `30%`, vault `25%` |
+| Spot fee | `0.30%` trade fee; maker `70%`, protocol `10%`, vault `20%` |
+| Parimutuel fee | `1%` entry fee; creator `5%`, protocol `50%`, vault `45%` |
+| Parimutuel min entry | `5 eveUSD` |
+| Parimutuel epoch window cap | `30 days` |
+| Market duration bounds | `2 minutes` to `365 days` |
+| EVE vote duration | `24 hours` |
+| EVE vote quorum | `100,000 EVE` |
+| Max escalation | `2` |
+
+## Integration notes
+
+Call market functions through the diamond. Treat standalone contracts as explicit token, vault, lending, faucet, or router integrations.
+
+EveUSD is 18 decimals even when the backing token is 6 decimal USDC. The current testnet EVE token is also the vote token; there is no separate EVE votes token in this deployment.
+
+Market-side orderbook IDs are deterministic, but book records are materialized lazily. Indexers should start from block `41907604`, ingest `MarketCreated`, and enrich market, token, and book state through diamond read functions.

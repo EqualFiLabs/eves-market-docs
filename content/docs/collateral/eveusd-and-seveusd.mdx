@@ -1,0 +1,42 @@
+---
+id: collateral
+slug: collateral/eveusd-and-seveusd
+label: Collateral overview
+eyebrow: Collateral
+title: eveUSD and sEVEUSD
+description: The 18 decimal USDC backed execution rail and the productive vault share layer above it.
+status: Collateral
+updated: 2026-05-23
+order: 300
+---
+
+## eveUSD
+
+eveUSD is the protocol's USDC backed execution rail. It is an 18 decimal ERC20 backed by 6 decimal USDC held by the EveUSD contract.
+
+Wrapping transfers USDC into EveUSD and mints scaled eveUSD: `eveUSDMinted = usdcAmount * 1e12`. Unwrapping burns eveUSD and returns USDC, but the eveUSD amount must be convertible back to 6 decimal USDC units.
+
+:::warning Decimal model
+Do not document eveUSD as 6 decimals or same-amount 1:1 units. The economic backing is 1 USDC to 1 eveUSD, but the token units are scaled from 6 decimals to 18 decimals.
+:::
+
+## Wrapping flow
+
+```solidity wrap
+IERC20(usdc).approve(eveUSD, 1_000_000);
+uint256 minted = IEveUSD(eveUSD).wrap(1_000_000, msg.sender);
+// minted == 1_000_000_000_000_000_000
+IEveUSD(eveUSD).unwrap(minted, msg.sender);
+```
+
+Users can start from USDC through router flows, but builders should remain explicit about the unit conversion when showing balances and allowances.
+
+## From collateral to positions
+
+For orderbook markets, eveUSD can be split into equal YES and NO CTF positions. For parimutuel markets, eveUSD is paid into the pool and converted into weighted share tokens. For spot books, ERC20 base and quote tokens are posted directly according to the standalone book configuration.
+
+## sEVEUSD
+
+sEVEUSD is the productive capital layer above eveUSD. Users deposit eveUSD into the vault to receive vault shares and can later redeem shares back into eveUSD.
+
+The vault can receive registered reward tokens from protocol revenue routing. This is distinct from eveUSD's role as stable execution collateral.

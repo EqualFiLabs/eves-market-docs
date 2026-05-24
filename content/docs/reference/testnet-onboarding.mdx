@@ -1,0 +1,34 @@
+---
+id: testnet-onboarding
+slug: reference/testnet-onboarding
+label: Testnet onboarding
+eyebrow: Reference
+title: Testnet onboarding
+description: Faucet, wrapping, approvals, and smoke flows for users and builders on the alpha testnet deployment.
+status: Reference
+updated: 2026-05-24
+order: 540
+---
+
+## Test assets
+
+The alpha testnet stack includes mock USDC, mock EVE, a faucet, EveUSD, and the market diamond. The faucet is for testnet onboarding only.
+
+Users usually need mock USDC for collateral and may need mock EVE for resolution bonds or governance flows depending on the tested path.
+
+## Basic flow
+
+- Claim test USDC and EVE from the faucet.
+- Approve USDC to EveUSD.
+- Wrap USDC into 18 decimal eveUSD.
+- Approve eveUSD or ERC1155 operators as required by the route.
+- Create or enter a market.
+- Trade, resolve, and claim through the diamond.
+
+## Allowance display
+
+Frontends should format very large allowances as `Max` or a compact value. Raw `uint256.max` style numbers are not useful in create market modals.
+
+## Smoke paths
+
+Useful user-facing smoke tests include market creation, scheduled start gating, orderbook split and merge, ask and bid curve fills, combo book creation, parimutuel entry preview and buy, resolution, settlement, fee claims, faucet claim, wrapping, and unwrapping.

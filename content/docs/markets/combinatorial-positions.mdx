@@ -1,0 +1,88 @@
+---
+id: combinatorial-positions
+slug: markets/combinatorial-positions
+label: Combinatorial positions
+eyebrow: Markets
+title: Combinatorial positions
+description: Beta roadmap for parlay-like scenario positions, combo books, complements, and decomposable ERC1155 branches.
+status: Beta roadmap
+updated: 2026-05-23
+order: 120
+---
+
+## What a combo position is
+
+A combo position is a planned beta ERC1155 scenario token that represents a
+conjunction across multiple started orderbook markets. For example, a trader
+could express `A AND B AND C` as one position ID instead of manually managing
+separate branches.
+
+These positions are parlay-like, but they are not traditional sportsbook
+parlays. A combo is a decomposable conditional position: parts of the tree can be
+split, merged, compressed, or traded when the holder owns or acquires the
+required complementary branches.
+
+## Alpha boundary
+
+The current alpha focuses on orderbook and CLOB market behavior. That data still
+matters for beta because combo books will reuse the same maker concepts:
+inventory, quotes, curve updates, fills, and fee accounting.
+
+Combinatorial positions are not required for the alpha CLOB rollout.
+
+## Beta direction
+
+The beta target is an Eves-native ERC1155 position manager with binary and
+combinatorial modules. Gnosis CTF remains the semantic reference, but beta
+parity requires higher-level operations such as compression, extraction,
+wrap/unwrap, and complement acquisition.
+
+Combo markets should use dedicated ERC1155 combo/branch books. They should not
+be treated as Spot books, because Spot is the ERC20 DEX surface.
+
+## Unbundling and complements
+
+The important caveat is that unbundling is not magic. Moving upward in the tree
+requires the holder to own the complementary branches needed to merge.
+
+If a user owns:
+
+```text
+A.YES AND B.YES
+```
+
+and needs:
+
+```text
+A.YES AND B.NO
+```
+
+the beta UX should let the user bid for that missing branch or let a maker fill a
+top-up reward and merge the position in one transaction.
+
+:::warning Complement requirement
+`NO(A AND B)` is not the same as `NO(A) AND NO(B)`. Combo UX must distinguish the
+complement of an entire scenario from individually negated legs.
+:::
+
+## Pricing
+
+A core combo claim pays at most one collateral unit. An 8-leg combo is not worth
+more than $1 because it has 8 legs; the upside comes from buying a low-probability
+scenario below its maximum payout.
+
+Makers can charge a premium above implied fair probability, but the book should
+not accept prices above the maximum redeemable payout for the claim.
+
+## Liquidity model
+
+The beta liquidity model is executable book liquidity from makers:
+
+- makers create and sell actual combo inventory
+- users bid for missing sibling branches
+- creators curate scenario books with their own pricing
+- arbitrageurs can trade between binary books and combo books
+
+This does not claim instant liquidity from every underlying binary market.
+Synthetic routing can be researched later, but the beta promise is maker-backed
+combo/branch books.

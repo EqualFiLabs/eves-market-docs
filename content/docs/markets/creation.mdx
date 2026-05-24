@@ -1,0 +1,57 @@
+---
+id: market-creation
+slug: markets/creation
+label: Market creation
+eyebrow: Markets
+title: Creating markets
+description: Required inputs, deterministic identity, batch creation, categories, scheduling, and creation economics.
+status: Markets
+updated: 2026-05-23
+order: 100
+---
+
+## Market identity
+
+Market identity includes the question, category, `tradingStartTime`, `expiryTime`, collateral token, market type, and position token type. The resolution source is required metadata, but it is not part of the deterministic market ID.
+
+| Input | Role |
+| --- | --- |
+| `question` | Human readable binary question. |
+| `category` | App category such as Sports, Crypto, Politics, Entertainment, or Miscellaneous. |
+| `resolutionSource` | Required metadata naming the source used for outcome resolution. |
+| `tradingStartTime` | Earliest time trading or entry can begin. |
+| `expiryTime` | Time after which exposure closes and resolution can begin. |
+
+## Scheduled markets
+
+Creators can create markets that start in the future. A scheduled market exists onchain, can be indexed, and can appear in upcoming views, but user-facing execution should remain disabled until start.
+
+For orderbook markets, makers can prepare intent and inventory offchain, but live execution is bounded by the market's start and expiry. For parimutuel markets, `buyShares` and `buySharesBatch` are rejected before `tradingStartTime`.
+
+## Batch creation
+
+`createMarkets(MarketCreationParams[])` creates multiple orderbook markets in one transaction subject to `marketCreationBatchCap` and the chain block gas limit. Large schedules should be paginated by the frontend or creator tooling.
+
+```solidity createMarkets
+struct MarketCreationParams {
+    string question;
+    string category;
+    string resolutionSource;
+    uint64 tradingStartTime;
+    uint64 expiryTime;
+    uint128 initialVolume;
+    bool initialDirection;
+}
+```
+
+## Categories
+
+Categories are product metadata, not permission gates. The docs and UI should include a Miscellaneous category for long tail user-created markets, such as entertainment questions or creator-specific events.
+
+Good category handling should not assume every market fits sports, politics, crypto, or macro. A valid market can be something like whether a character performs an action in a specific episode, as long as the question is resolvable and the resolution source is clear.
+
+## Creation outputs
+
+Creation records market metadata, token details, fee config snapshots, deterministic YES and NO position IDs, and deterministic market-side book IDs.
+
+Market-side CLOB books are assigned by ID at creation but are materialized lazily. Indexers should not assume a `BookCreated` event exists for a side book until a maker or route first causes that book to be registered.

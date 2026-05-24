@@ -1,0 +1,35 @@
+---
+id: resolution
+slug: resolution/optimistic-resolution
+label: Resolution
+eyebrow: Resolution
+title: Optimistic resolution
+description: Creator settlement, disputes, escalation, voting, final outcomes, and trust assumptions.
+status: Resolution
+updated: 2026-05-23
+order: 200
+---
+
+## Why optimistic resolution exists
+
+Prediction markets need a path from human-readable questions to onchain payout states. Eves Market uses optimistic resolution so normal markets can settle without forcing every outcome through a governance vote.
+
+Creators are incentivized to settle correctly, challengers can dispute bad outcomes, and escalation moves unresolved conflict toward final resolution.
+
+## Flow
+
+| Step | Role |
+| --- | --- |
+| Expiry | Market closes to new exposure. |
+| Creator settle | Creator proposes YES, NO, or INVALID during the creator window. |
+| Dispute | A challenger can bond and escalate if the proposed outcome is wrong. |
+| Open resolution | If creator settlement fails or is challenged through the flow, broader resolution paths take over. |
+| Finalization | The final outcome is stored and settlement paths unlock. |
+
+## Outcomes
+
+Markets support YES, NO, and INVALID. INVALID must remain explicit in UX because it behaves differently across token families. CTF payout vectors and parimutuel pool claims are not the same settlement mechanism.
+
+## Creator incentives
+
+Creator fee eligibility depends on honest and timely resolution behavior. The docs should frame creator fees as conditional rewards, not guaranteed extraction from every market.

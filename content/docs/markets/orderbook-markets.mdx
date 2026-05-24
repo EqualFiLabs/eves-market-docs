@@ -1,0 +1,42 @@
+---
+id: orderbook-markets
+slug: markets/orderbook-markets
+label: Orderbook markets
+eyebrow: Markets
+title: Orderbook prediction markets
+description: Binary CTF markets where eveUSD collateral becomes complementary YES and NO ERC1155 positions traded through curve books.
+status: Markets
+updated: 2026-05-23
+order: 110
+---
+
+## The YES and NO token model
+
+Orderbook markets use Gnosis ConditionalTokens. One unit of eveUSD collateral can be split into matching YES and NO ERC1155 balances for a market condition.
+
+Those positions are complementary before resolution. A holder with equal YES and NO balances can merge them back into eveUSD. After resolution, the winning side redeems according to the reported CTF payout vector and the losing side has no payout.
+
+## Book structure
+
+Each orderbook market has deterministic YES and NO side book IDs. These IDs are available from `getMarketSideBook`, but the book storage record is created lazily when liquidity or a route first needs that side.
+
+| Book | Base inventory | Quote |
+| --- | --- | --- |
+| YES book | YES ERC1155 CTF position | eveUSD |
+| NO book | NO ERC1155 CTF position | eveUSD |
+
+:::note Lazy materialization
+The market creates deterministic side book IDs, not necessarily registered book records. Check `isBookMaterialized(bookId)` or wait for `BookCreated` before assuming the full book info exists.
+:::
+
+## Splitting and merging inventory
+
+`splitInventory(marketId, collateralAmount)` consumes eveUSD and mints equal YES and NO balances. Router paths can wrap USDC into eveUSD and split in one flow.
+
+`mergeInventory(marketId, shareAmount)` burns matching YES and NO balances and returns eveUSD before the market is resolved. Merging is only possible when the holder owns the complementary branch needed to go upward.
+
+## Trading
+
+Makers post ask curves by escrowing base inventory, or bid curves by escrowing quote collateral. Takers fill curves with slippage bounds and expected curve generations or commitments.
+
+Execution does not create free liquidity from the binary pair. A book only has executable liquidity when makers have collateralized posted curves.

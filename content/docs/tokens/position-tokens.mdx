@@ -1,0 +1,35 @@
+---
+id: position-tokens
+slug: tokens/position-tokens
+label: Position tokens
+eyebrow: Tokens
+title: Position tokens
+description: CTF positions, combo positions, parimutuel shares, approvals, metadata, and wallet expectations.
+status: Tokens
+updated: 2026-05-23
+order: 400
+---
+
+## Token families
+
+| Market type | Token system | Position meaning |
+| --- | --- | --- |
+| Orderbook | Gnosis ConditionalTokens ERC1155 | Complementary YES and NO claims over collateral. |
+| Combo | Nested Gnosis ConditionalTokens ERC1155 | Scenario claim across multiple market conditions. |
+| Parimutuel | `ParimutuelShareToken` ERC1155 | Weighted pool share claim, not mergeable CTF complement. |
+
+## Approvals and custody
+
+Users hold ERC1155 balances directly until they transfer or approve them. Ask-side maker curves escrow base inventory into protocol custody. Bid-side curves escrow quote collateral and later receive base inventory from sellers.
+
+Apps should use standard ERC1155 operator approvals for CTF and parimutuel share movement.
+
+## Metadata
+
+The diamond exposes market and position metadata through read functions such as `getMarketMetadata`, `getMarketTokenInfo`, `getPositionMetadata`, and `positionTokenURI`.
+
+Raw Gnosis CTF wallets may not automatically discover the diamond's custom `positionTokenURI` surface. Treat protocol metadata as an app and indexer integration surface, not guaranteed wallet rendering for every ERC1155 viewer.
+
+## Settlement differences
+
+CTF positions can merge before resolution when complements are present and redeem after final payout reporting. Parimutuel shares do not merge into collateral and instead claim against the finalized payout pool snapshot.

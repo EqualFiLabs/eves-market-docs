@@ -1,0 +1,33 @@
+---
+id: vault-yield
+slug: collateral/vault-and-yield
+label: Vault and yield
+eyebrow: Collateral
+title: sEVEUSD vault and yield
+description: How idle eveUSD can sit in the vault, receive registered rewards, and stay separate from execution collateral.
+status: Collateral
+updated: 2026-05-23
+order: 310
+---
+
+## Why the vault matters
+
+The protocol separates execution capital from productive capital. eveUSD is the stable market collateral rail, while sEVEUSD gives users a place for idle balances that are not currently posted in markets or maker inventory.
+
+This lets users keep protocol-native capital inside the system without requiring every dollar to sit in an active trade.
+
+## Revenue flow
+
+A portion of protocol revenue can be directed to the vault when the configured staking vault and reward token are active. Vault-directed fees are distinct from protocol treasury fees and market creator fees.
+
+| Flow | Recipient |
+| --- | --- |
+| Vault fee split | Registered reward flow for sEVEUSD holders. |
+| Protocol fee split | Treasury. |
+| AUM fee | Treasury capture, not a vault-holder reward. |
+
+## Multi-token rewards
+
+The vault can support registered reward tokens beyond eveUSD. A single sEVEUSD position can accrue whatever reward tokens the vault has enabled and received.
+
+Integrations should query vault reward state rather than assuming every reward is denominated in eveUSD.

@@ -1,0 +1,74 @@
+---
+id: builders
+slug: reference/builder-reference
+label: Builder reference
+eyebrow: Reference
+title: Builder reference
+description: Current ABI surfaces and integration rules for apps, routers, market makers, and agents.
+status: Reference
+updated: 2026-05-23
+order: 500
+---
+
+## Creation surfaces
+
+```solidity createMarket
+function createMarket(
+    string calldata question,
+    string calldata category,
+    string calldata resolutionSource,
+    uint64 tradingStartTime,
+    uint64 expiryTime,
+    uint128 initialVolume,
+    bool initialDirection
+) external returns (bytes32 marketId);
+```
+
+```solidity createParimutuelMarket
+function createParimutuelMarket(
+    string calldata question,
+    string calldata category,
+    string calldata resolutionSource,
+    uint64 tradingStartTime,
+    uint64 expiryTime,
+    uint64 epochWindow
+) external returns (bytes32 marketId);
+```
+
+## Book surfaces
+
+```solidity books
+function createBook(
+    BookAssetType assetType,
+    BaseTransferMode baseTransferMode,
+    address baseToken,
+    uint256 baseTokenId,
+    address quoteToken,
+    uint8 tickPresetId,
+    bytes32 salt
+) external returns (bytes32 bookId);
+
+function createComboBook(
+    ComboLeg[] calldata legs,
+    uint8 tickPresetId,
+    bytes32 salt
+) external returns (bytes32 bookId);
+```
+
+## Read surfaces
+
+| Read | Purpose |
+| --- | --- |
+| `getMarketInfo` | State, timing, fees, outcome, creator, collateral, and volume. |
+| `getMarketMetadata` | Question, category, resolution source, start, expiry, and token data. |
+| `getMarketTokenInfo` | Position token type, position token, collateral, condition, and token IDs. |
+| `getMarketSideBook` | Deterministic YES or NO side book ID. |
+| `isBookMaterialized` | Whether a book storage record exists yet. |
+| `getBookInfo` | Book pricing, lifecycle, fee, asset, and tick config. |
+| `previewParimutuelEntry` | Entry fee, net collateral, minted shares, epoch, and projected pool totals. |
+
+## Execution rules
+
+Taker fills should pass expected generations or expected commitments. Frontends should preview output, enforce slippage, avoid stale curve fills, and distinguish book fills from market-side convenience routes.
+
+For scheduled markets, user-facing actions should check `tradingStartTime` and `expiryTime` before enabling submit buttons.

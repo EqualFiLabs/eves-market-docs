@@ -1,0 +1,50 @@
+---
+id: introduction
+slug: introduction
+label: Introduction
+eyebrow: Protocol docs
+title: Eves Market Protocol
+description: Onchain prediction markets with curve order books, combinatorial CTF positions, parimutuel pools, scheduled market creation, optimistic resolution, and USDC backed collateral.
+status: Protocol docs
+updated: 2026-05-24
+order: 10
+---
+
+## What Eves Market provides
+
+Eves Market is an onchain prediction market protocol built around several trading surfaces rather than a single market primitive. Builders can create binary orderbook markets, pooled parimutuel markets, ERC20 spot books, and CTF based combo books.
+
+The protocol uses eveUSD as the execution collateral rail. Users can wrap USDC into 18 decimal eveUSD, split collateral into CTF outcome inventory, enter parimutuel pools, post maker curves, or deposit idle capital into the sEVEUSD vault.
+
+| Surface | Purpose |
+| --- | --- |
+| Orderbook markets | Binary CTF markets with YES and NO ERC1155 positions traded against eveUSD. |
+| Combinatorial positions | Nested Gnosis CTF positions that express a multi-leg scenario as one ERC1155 asset. |
+| Parimutuel markets | Pooled YES/NO markets with weighted shares and epoch multipliers. |
+| Spot books | ERC20 base and quote books for a standalone onchain DEX style surface. |
+| Resolution | Optimistic market settlement with disputes, escalation, and final redemption paths. |
+
+## Current alpha surfaces
+
+The current alpha protocol prioritizes Polymarket-like CTF compatibility for orderbook and combo markets. It uses a standard Gnosis ConditionalTokens contract and nested collection IDs for combo positions.
+
+Scheduled creation is also part of the active surface. Market creators can create future markets with a `tradingStartTime`, so batches such as 24 one-hour BTC markets can be prepared without immediately opening trading or parimutuel entry.
+
+## Mechanism map
+
+| Mechanism | What it enables |
+| --- | --- |
+| Gnosis CTF orderbooks | Collateral-backed YES and NO ERC1155 positions with merge and redeem paths. |
+| Curve CLOB | Maker liquidity as flat orders or time-aware price schedules. |
+| Combo books | Dedicated books for nested multi-leg CTF scenario positions. |
+| Parimutuel pools | Pooled directional markets with early-conviction epoch multipliers. |
+| Scheduled creation | Future markets that can be indexed before trading or entry opens. |
+| Optimistic resolution | Creator settlement, disputes, escalation, and final payout reporting. |
+| eveUSD and sEVEUSD | USDC-backed execution collateral plus a productive vault layer for idle capital. |
+
+## Choose your path
+
+- Traders should start with orderbook markets, parimutuel markets, collateral, and settlement.
+- Market makers should read Curve CLOB, combinatorial positions, spot books, and fee configuration.
+- Creators should read market creation, scheduled markets, parimutuel epoch windows, and optimistic resolution.
+- Builders and indexers should read the builder reference, indexing guide, deployment operators page, and token model.

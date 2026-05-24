@@ -1,0 +1,50 @@
+---
+id: parimutuel
+slug: markets/parimutuel
+label: Parimutuel
+eyebrow: Markets
+title: Parimutuel markets
+description: Pooled YES and NO markets with scheduled starts, entry fees, epoch multipliers, share tokens, and payout snapshots.
+status: Markets
+updated: 2026-05-24
+order: 150
+---
+
+## Pool model
+
+Parimutuel markets do not split collateral into complementary CTF inventory. A user buys YES or NO shares, net collateral is added to the payout pool, and the minted share amount is weighted by the active epoch multiplier.
+
+Winners claim pro-rata against the finalized pool snapshot. INVALID resolution makes both sides claimable against the pool snapshot according to the parimutuel settlement rules.
+
+## Scheduled entry
+
+`createParimutuelMarket` accepts `tradingStartTime`, `expiryTime`, and `epochWindow`. Shares are not purchasable before `tradingStartTime`.
+
+```solidity createParimutuelMarket
+function createParimutuelMarket(
+    string calldata question,
+    string calldata category,
+    string calldata resolutionSource,
+    uint64 tradingStartTime,
+    uint64 expiryTime,
+    uint64 epochWindow
+) external returns (bytes32 marketId);
+```
+
+## Epoch windows
+
+The epoch multiplier schedule starts from `tradingStartTime`, not market creation. `epochWindow` is customized per market, but it must be greater than zero, no longer than the market duration, and no longer than `parimutuelEpochWindowCap`.
+
+This means a 30-day market can use a one-day epoch window if the protocol cap allows it. The early-conviction multiplier then decays across the first day rather than the full 30 days.
+
+## Entry flow
+
+The entry amount must be at least `parimutuelMinEntry`. The protocol deducts the parimutuel entry fee, routes creator/protocol/vault fee shares, adds net collateral to the payout pool, and mints weighted ERC1155 shares.
+
+`previewParimutuelEntry` returns fee breakdown, net collateral, shares minted, active epoch, multiplier, effective basis, and projected pool totals. Frontends should preview before submitting and enforce `minSharesOut`.
+
+## Secondary market
+
+Parimutuel share tokens are ERC1155 balances and can be moved with standard approvals. A secondary CLOB path can exist when makers post inventory, but docs should not imply automatic liquidity or immediate book materialization.
+
+The main combo product focus is CTF orderbook markets. Parimutuel scheduling is included; parimutuel combinatorics are not part of this combo feature.
