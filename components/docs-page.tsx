@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { MobileDocsMenu } from "@/components/mobile-docs-menu";
 import { type DocBlock, type DocPage as DocPageType, getAllPages, getNavigationGroups, getPageHref } from "@/lib/docs";
 
 function renderInline(text: string) {
@@ -92,6 +93,7 @@ function renderBlock(block: DocBlock, index: number) {
 
 export function DocsPage({ page }: { page: DocPageType }) {
   const allPages = getAllPages();
+  const navigationGroups = getNavigationGroups();
   const pageIndex = allPages.findIndex((entry) => entry.id === page.id);
   const previousPage = pageIndex > 0 ? allPages[pageIndex - 1] : null;
   const nextPage = pageIndex >= 0 && pageIndex < allPages.length - 1 ? allPages[pageIndex + 1] : null;
@@ -100,6 +102,8 @@ export function DocsPage({ page }: { page: DocPageType }) {
     <div className="docs-app">
       <header className="topbar">
         <div className="topbar-inner">
+          <MobileDocsMenu activePageId={page.id} navigationGroups={navigationGroups} sections={page.sections} />
+
           <Link className="brand" href="/docs/introduction">
             <span className="brand-mark">
               <Image
@@ -129,7 +133,7 @@ export function DocsPage({ page }: { page: DocPageType }) {
 
       <div className="docs-grid">
         <aside className="sidebar">
-          {getNavigationGroups().map((group) => (
+          {navigationGroups.map((group) => (
             <div className="nav-group" key={group.title}>
               <div className="nav-group-title">{group.title}</div>
               <div className="nav-links">
