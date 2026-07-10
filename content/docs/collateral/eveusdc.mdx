@@ -1,0 +1,62 @@
+---
+id: eveusdc
+slug: collateral/eveusdc
+label: eveUSDC collateral
+eyebrow: Collateral
+title: eveUSDC, the base collateral
+description: eveUSDC is the 18 decimal USDC wrapper that backs every default market and resolution bond.
+status: Collateral
+updated: 2026-07-08
+order: 300
+---
+
+## What eveUSDC is
+
+eveUSDC is an 18 decimal ERC20 1:1 backed by native 6 decimal USDC. It is the protocol's base money: the default market collateral and the default resolution bond token. The deploy forces every market's collateral to eveUSDC and falls back to eveUSDC for the bond token when nothing else is configured.
+
+eveUSDC is not the same contract as eveUSD. eveUSD is the optional senior tranche of the WETH pairing pool. See the pairing pool page for that distinction.
+
+## Decimal model
+
+USDC has 6 decimals. eveUSDC has 18. The scale is a constant `1e12`, so one 6 decimal USDC unit becomes one trillion eveUSDC raw units, but the economic value is one to one.
+
+| Token | Decimals | 1 USDC raw | Backing |
+| --- | --- | --- | --- |
+| USDC | 6 | 1000000 | native asset |
+| eveUSDC | 18 | 1000000000000000000 | 1 USDC held by the wrapper |
+
+Do not display eveUSDC as 6 decimals, and do not assume same-amount 1:1 raw units. The backing is 1 USDC to 1 eveUSDC, but the integer representation is scaled up by 1e12.
+
+## Wrapping and unwrapping
+
+Anyone can wrap and unwrap. Wrapping pulls USDC and mints scaled eveUSDC. Unwrapping burns eveUSDC and returns USDC, and reverts if the amount leaves non-convertible dust.
+
+```solidity wrap
+IERC20(usdc).approve(eveUSDC, 1_000_000);
+uint256 minted = EveUSDC(eveUSDC).wrap(1_000_000, receiver);
+// minted == 1_000_000_000_000_000_000
+EveUSDC(eveUSDC).unwrap(minted, receiver);
+```
+
+Because unwrapping must land on a whole 6 decimal USDC unit, any remainder below 1e12 is dust and cannot be converted back. Integrations should floor eveUSDC amounts to a multiple of 1e12 before offering an unwrap.
+
+## Restricted mint and burn
+
+Beyond user-driven wrap and unwrap, eveUSDC has two privileged entry points used by router contracts, not by end users.
+
+| Function | Caller | Effect |
+| --- | --- | --- |
+| `mint(to, amount)` | configured onramp only | mints eveUSDC without pulling USDC |
+| `burn(from, amount)` | configured offramp only | burns eveUSDC without returning USDC |
+
+These let the diamond's trade router mint or burn eveUSDC inline during a single-transaction USDC buy or sell, so a user never has to pre-wrap. They are not open minting authority for anyone else.
+
+## From collateral to positions
+
+For default orderbook markets, eveUSDC splits into equal YES and NO CTF positions. For default parimutuel markets, eveUSDC is paid into the pool and converted into weighted share tokens. Every fee leg, payout, and redemption for a default market is denominated in eveUSDC.
+
+Collateral profiles can register a different ERC20 as a market's collateral. The only auto-registered profile today is eveUSD on the optional pairing pool; there is no longer an eveETH profile.
+
+## eveUSDC as the bond token
+
+Resolution and creation bonds use the configured bond token, which defaults to eveUSDC. Read `bondToken` from `getMarketConfig` rather than assuming a specific asset, but for a standard full-stack deploy it resolves to eveUSDC.

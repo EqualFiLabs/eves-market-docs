@@ -6,34 +6,45 @@ eyebrow: Reference
 title: Builder reference
 description: Current ABI surfaces and integration rules for apps, routers, market makers, and agents.
 status: Reference
-updated: 2026-05-23
+updated: 2026-07-08
 order: 500
 ---
 
+## Facet inventory
+
+The diamond exposes 52 facets. Each owns a narrow set of selectors and resolves against the diamond address. The notable splits to be aware of: the resolver registry is split across core, view, rewards, and reputation facets; parimutuel reads live on a separate view facet; market creation, market groups, and market views are distinct; and the curve and book CLOB surface is split into inventory, lifecycle, trade, and view facets each.
+
+| Group | Facets |
+| --- | --- |
+| Core | DiamondCut, DiamondLoupe, Ownership, FeeConfig |
+| Markets | MarketFactory, MarketGroup, MarketView, MarketSettlement |
+| Curve CLOB | CurveInventory, CurveLifecycle, CurveCLOB, CurveView |
+| Book CLOB | Book, BookOrder, BookTrade, BookView |
+| Multi-outcome and combo | MultiOutcomeOrderbook, MultiOutcomeOrderbookView, NativeBinaryPosition, ComboCore, ComboSettlement, ComboBranch, ComboView, ComboMarket |
+| Parimutuel | Parimutuel, ParimutuelView |
+| Parlay | ParlayAdmin, ParlayUnderwriting, ParlayBudget, ParlaySettlement, ParlayBook, ParlayView, ParlayMulticall |
+| Resolution | OBRResolution, ResolverRegistry, ResolverRegistryView, ResolverRegistryRewards, ResolverRegistryReputation, ResolverJury |
+| Margin and MLO | MarginAccount, MarkOracle, QuoteEnvelope, MLOPredictionAdapter, MLOPredictionCurve, MLOPredictionTrade, MLOPredictionSettlement |
+| Routing | TradeRouter, TradeRouterSell, DelayedOrder, FeeRouter, BondManager, BondTokenGate |
+
 ## Creation surfaces
 
+The canonical creation entry points take typed config structs plus an optional `CollateralProfile`, carrying display and external reference metadata. Legacy positional overloads exist for backwards compatibility but omit that metadata.
+
 ```solidity createMarket
-function createMarket(
-    string calldata question,
-    string calldata category,
-    string calldata resolutionSource,
-    uint64 tradingStartTime,
-    uint64 expiryTime,
-    uint128 initialVolume,
-    bool initialDirection
-) external returns (bytes32 marketId);
+createMarket(MarketCreationParams config, CollateralProfile profile)
+createMarketWithCollateralProfile(uint8 profileId, MarketCreationParams config, CollateralProfile profile)
+createMarkets(MarketCreationParams[] configs)
 ```
 
+`createMarketGroup` and `createMarketGroupFromExisting` batch related markets under one group id. `createMultiOutcomeMarket` and its profile variant create multi-outcome orderbook markets with one outcome book per outcome.
+
 ```solidity createParimutuelMarket
-function createParimutuelMarket(
-    string calldata question,
-    string calldata category,
-    string calldata resolutionSource,
-    uint64 tradingStartTime,
-    uint64 expiryTime,
-    uint64 epochWindow
-) external returns (bytes32 marketId);
+createParimutuelMarket(ParimutuelMarketConfig config, CollateralProfile profile)
+createParimutuelMarketWithCollateralProfile(uint8 profileId, ParimutuelMarketConfig config, CollateralProfile profile)
 ```
+
+Combo markets are created with `createComboMarket`, not a generic book creator.
 
 ## Book surfaces
 
@@ -47,12 +58,6 @@ function createBook(
     uint8 tickPresetId,
     bytes32 salt
 ) external returns (bytes32 bookId);
-
-function createComboBook(
-    ComboLeg[] calldata legs,
-    uint8 tickPresetId,
-    bytes32 salt
-) external returns (bytes32 bookId);
 ```
 
 ## Read surfaces
@@ -62,13 +67,31 @@ function createComboBook(
 | `getMarketInfo` | State, timing, fees, outcome, creator, collateral, and volume. |
 | `getMarketMetadata` | Question, category, resolution source, start, expiry, and token data. |
 | `getMarketTokenInfo` | Position token type, position token, collateral, condition, and token IDs. |
+| `getMarketConfig` | Collateral, eve token, treasury, senior pool, evRisk staking, bond token, bonds, duration bounds, and resolution mode. |
+| `getCollateralProfile` | Profile collateral token, payout unit, creation fee, and enabled flag. |
 | `getMarketSideBook` | Deterministic YES or NO side book ID. |
 | `isBookMaterialized` | Whether a book storage record exists yet. |
 | `getBookInfo` | Book pricing, lifecycle, fee, asset, and tick config. |
-| `previewParimutuelEntry` | Entry fee, net collateral, minted shares, epoch, and projected pool totals. |
+| `previewParimutuelEntry` | Entry fee breakdown including evRisk leg, net collateral, minted shares, epoch, and projected pool totals. |
+| `resolverDashboard` | Aggregate resolver state. |
+| `resolverJuryConfig` | Current identity, pool, round, and economics settings. |
+| `disputeView` | Resolver jury dispute state, deadlines, current round, and finality flags. |
+| `committeeMembers` | Resolver identity ids selected for a dispute round. |
+
+## Fee surfaces
+
+Per-surface fee splits are read through the fee config facet and the market view fee config views. Each surface exposes its take rate plus the maker, creator, protocol, seniorPool, resolver, and evRisk legs as applicable. Builders computing splits must include all legs; omitting resolver or evRisk will mis-state net proceeds.
 
 ## Execution rules
 
 Taker fills should pass expected generations or expected commitments. Frontends should preview output, enforce slippage, avoid stale curve fills, and distinguish book fills from market-side convenience routes.
 
-For scheduled markets, user-facing actions should check `tradingStartTime` and `expiryTime` before enabling submit buttons.
+The trade router facets wrap the fill path so a user can act from a USDC or eveUSDC balance directly: `buyWithUSDC`, `buyWithEveUSDC`, `splitWithUSDC`, `buyWithCollateral`, and the matching sell variants. The router no longer self-calls the diamond.
+
+For scheduled markets, user-facing actions should check `tradingStartTime` and `expiryTime` before enabling submit buttons. For market-side CLOB books, contract execution is open only after the market has started and before expiry while the market is in the executable trading state.
+
+## Bond and resolution config
+
+`getMarketConfig` exposes `bondToken`, `marketCreationBond`, `resolutionBondL1`, and `resolutionBondL2`. The bond token defaults to eveUSDC. Builders should show the configured bond token symbol and decimals by reading the ERC20 metadata.
+
+The OBR resolution ABI exposes `settleMarket`, `settleMarketEarly`, `openResolution`, `disputeResolution`, `finalizeResolution`, `adminFinalizeResolution`, and `finalizeFromJury`, plus `resolutionMode()`. The mode gates which path is live: under `CreatorAdminBootstrap` the owner can finalize any market, while under `ObrJury` disputes escalate to the resolver jury. It does not expose the legacy EVE vote methods.

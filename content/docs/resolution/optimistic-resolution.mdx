@@ -4,17 +4,28 @@ slug: resolution/optimistic-resolution
 label: Resolution
 eyebrow: Resolution
 title: Optimistic resolution
-description: Creator settlement, disputes, escalation, voting, final outcomes, and trust assumptions.
+description: Resolution modes, creator settlement, disputes, escalation, resolver jury finality, and bond assets.
 status: Resolution
-updated: 2026-05-23
+updated: 2026-07-08
 order: 200
 ---
 
 ## Why optimistic resolution exists
 
-Prediction markets need a path from human-readable questions to onchain payout states. Eves Market uses optimistic resolution so normal markets can settle without forcing every outcome through a governance vote.
+Prediction markets need a path from human-readable questions to onchain payout states. Eves Market uses optimistic resolution so normal markets can settle without forcing every outcome through a committee process.
 
-Creators are incentivized to settle correctly, challengers can dispute bad outcomes, and escalation moves unresolved conflict toward final resolution.
+Creators are incentivized to settle correctly, challengers can dispute bad outcomes, and escalation moves unresolved conflict toward the resolver jury for finality.
+
+## Resolution mode
+
+Every market resolves under one of two modes, set by `resolutionMode()` on the OBR resolution facet. The mode governs which settlement path is live and is a key governance lever.
+
+| Mode | Behavior |
+| --- | --- |
+| `CreatorAdminBootstrap` | Owner can `adminFinalizeResolution` any market. Used during early launch before the jury is populated. |
+| `ObrJury` | The full optimistic-plus-jury flow. `adminFinalizeResolution` is unavailable; disputes escalate to the resolver jury. |
+
+Most user-facing flows assume `ObrJury`. Under bootstrap mode the owner is trusted to report honestly, so it should be migrated away from before production use.
 
 ## Flow
 
@@ -22,9 +33,17 @@ Creators are incentivized to settle correctly, challengers can dispute bad outco
 | --- | --- |
 | Expiry | Market closes to new exposure. |
 | Creator settle | Creator proposes YES, NO, or INVALID during the creator window. |
-| Dispute | A challenger can bond and escalate if the proposed outcome is wrong. |
-| Open resolution | If creator settlement fails or is challenged through the flow, broader resolution paths take over. |
+| Dispute | A challenger bonds and escalates if the proposed outcome is wrong. |
+| Open resolution | If creator settlement fails, another participant can propose an outcome during the open window. |
+| Escalation | Counter-proposals bond in the configured bond token and move the dispute through escalation levels. |
+| Resolver jury | If escalation reaches the configured limit, the resolver jury flow establishes finality. |
 | Finalization | The final outcome is stored and settlement paths unlock. |
+
+When the jury path is live, `disputeResolution` and `finalizeResolution` revert while a jury dispute is open. Finality from the jury lands on the OBR facet only through `finalizeFromJury`, which is restricted to an internal diamond call, so external integrations must not call it directly.
+
+## Bond asset
+
+Resolution bonds are ERC20 based. The configured `bondToken` and the L1 and L2 bond amounts are exposed by `getMarketConfig`. For a standard full-stack deploy the bond token resolves to eveUSDC. Integrations should read the config rather than assuming a specific asset, and should never assume an ETH or `msg.value` bond.
 
 ## Outcomes
 
@@ -32,4 +51,4 @@ Markets support YES, NO, and INVALID. INVALID must remain explicit in UX because
 
 ## Creator incentives
 
-Creator fee eligibility depends on honest and timely resolution behavior. The docs should frame creator fees as conditional rewards, not guaranteed extraction from every market.
+Creator fee eligibility depends on honest and timely resolution behavior. Frame creator fees as conditional rewards, not guaranteed extraction from every market. The legacy EVE holder vote fallback is removed entirely; do not call or document vote, vote reward, or vote claim paths.

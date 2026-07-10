@@ -112,6 +112,14 @@ The execution path supports:
 
 Fills should pass expected curve generations or commitments. This prevents a taker from filling stale maker inventory after a maker update. Apps should also avoid routing a user's own curve into their own taker fill.
 
+## Trade router
+
+The trade router facets wrap the fill path for the common user flows so a user does not have to pre-split or pre-wrap. `TradeRouterFacet` exposes `buyWithEveUSDC`, `buyWithUSDC`, `splitWithUSDC`, and `buyWithCollateral`; `TradeRouterSellFacet` exposes the matching sells plus `previewSellBest`. `buyWithUSDC` wraps USDC into eveUSDC inline using eveUSDC's privileged mint, and the router no longer self-calls the diamond, so execution stays in-process and cheap.
+
+## Delayed orders
+
+For flows that need front-running protection, `DelayedOrderFacet` offers a FIFO alternative to direct fills. A `submitDelayedOrder` waits a configured protection delay before it becomes executable, then anyone can `processDelayedOrders` from the queue head, with explicit expiry and grace windows. Delayed orders are a variant of the same curve-fill primitive, not a separate market type.
+
 ## Tick-Aware Pricing
 
 `getBookInfo` exposes `pricingMode`, `tickPresetId`, `tickSize`, `priceDenominator`, `minTick`, and `maxTick`. Frontends should snap user prices to the active book grid before building transactions.

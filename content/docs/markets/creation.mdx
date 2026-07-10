@@ -4,9 +4,9 @@ slug: markets/creation
 label: Market creation
 eyebrow: Markets
 title: Creating markets
-description: Required inputs, deterministic identity, batch creation, categories, scheduling, and creation economics.
+description: Required inputs, deterministic identity, market groups, scheduling, profiles, and creation economics.
 status: Markets
-updated: 2026-05-23
+updated: 2026-07-08
 order: 100
 ---
 
@@ -22,6 +22,49 @@ Market identity includes the question, category, `tradingStartTime`, `expiryTime
 | `tradingStartTime` | Earliest time trading or entry can begin. |
 | `expiryTime` | Time after which exposure closes and resolution can begin. |
 
+## Creation params
+
+The canonical creation entry points take a typed `MarketCreationParams` struct plus an optional `CollateralProfile`. Beyond the core fields, every creation call carries display metadata and an external reference, so a market is indexable and linkable to an upstream source from creation onward.
+
+```solidity MarketCreationParams
+struct MarketCreationParams {
+    string question;
+    string category;
+    string resolutionSource;
+    uint64 tradingStartTime;
+    uint64 expiryTime;
+    uint128 initialVolume;
+    bool initialDirection;
+    MarketDisplayInput display;      // slug, title, subtitle, rules, image/icon URLs, metadataURI, tags
+    ExternalMarketRefInput externalRef; // source, source event/market ids, slug, condition id, snapshot hash
+}
+```
+
+Legacy positional overloads like `createMarket(string,string,string,uint64,uint64,uint128,bool)` still exist for backwards compatibility, but the struct-param signatures are the canonical path and the only ones that carry display and external reference metadata.
+
+## Market groups
+
+Related markets are best created together as a group. `MarketGroupFacet` creates a group and its member markets in one flow, or adds existing markets to a group, so indexers and UIs can treat a schedule as a single curated unit.
+
+| Function | Purpose |
+| --- | --- |
+| `createMarketGroup` | Create a group and its markets from typed configs. |
+| `createMarketGroupFromExisting` | Create a group around markets that already exist. |
+| `addMarketsToGroup` | Add existing markets to an existing group. |
+
+## Collateral profiles
+
+Default creation uses the protocol's configured collateral token, eveUSDC. Profile creation variants let a creator select an enabled collateral profile, such as eveUSD on the optional pairing pool, while preserving deterministic market identity.
+
+| Surface | Profile creation function |
+| --- | --- |
+| Binary orderbook | `createMarketWithCollateralProfile` |
+| Parimutuel | `createParimutuelMarketWithCollateralProfile` |
+| Multi-outcome orderbook | `createMultiOutcomeMarketWithCollateralProfile` |
+| Parlay quotes and budgets | Profile-specific parlay post and budget functions |
+
+Integrations should display the market collateral symbol, payout unit, and profile-specific creation fee. Do not assume eveUSDC units for profile markets.
+
 ## Scheduled markets
 
 Creators can create markets that start in the future. A scheduled market exists onchain, can be indexed, and can appear in upcoming views, but user-facing execution should remain disabled until start.
@@ -32,26 +75,12 @@ For orderbook markets, makers can prepare intent and inventory offchain, but liv
 
 `createMarkets(MarketCreationParams[])` creates multiple orderbook markets in one transaction subject to `marketCreationBatchCap` and the chain block gas limit. Large schedules should be paginated by the frontend or creator tooling.
 
-```solidity createMarkets
-struct MarketCreationParams {
-    string question;
-    string category;
-    string resolutionSource;
-    uint64 tradingStartTime;
-    uint64 expiryTime;
-    uint128 initialVolume;
-    bool initialDirection;
-}
-```
-
-## Categories
-
-Categories are product metadata, not permission gates. The docs and UI should include a Miscellaneous category for long tail user-created markets, such as entertainment questions or creator-specific events.
-
-Good category handling should not assume every market fits sports, politics, crypto, or macro. A valid market can be something like whether a character performs an action in a specific episode, as long as the question is resolvable and the resolution source is clear.
-
 ## Creation outputs
 
 Creation records market metadata, token details, fee config snapshots, deterministic YES and NO position IDs, and deterministic market-side book IDs.
 
 Market-side CLOB books are assigned by ID at creation but are materialized lazily. Indexers should not assume a `BookCreated` event exists for a side book until a maker or route first causes that book to be registered.
+
+## Creation economics
+
+Market creation can require a fee in the market collateral and a separate creation bond in the configured `bondToken`, which defaults to eveUSDC. The current ABI exposes `marketCreationBond` and `bondToken` through `getMarketConfig`; do not use legacy `marketCreationBondEve` naming.

@@ -4,26 +4,34 @@ slug: reference/testnet-onboarding
 label: Testnet onboarding
 eyebrow: Reference
 title: Testnet onboarding
-description: Faucet, wrapping, approvals, and smoke flows for users and builders on the alpha testnet deployment.
+description: Faucet, wrapping, approvals, and smoke flows for users and builders on a local or testnet deployment.
 status: Reference
-updated: 2026-05-24
+updated: 2026-07-08
 order: 540
 ---
 
 ## Test assets
 
-The alpha testnet stack includes mock USDC, mock EVE, a faucet, EveUSD, and the market diamond. The faucet is for testnet onboarding only.
+A full-stack test deploy includes mock USDC, mock EVE, eveUSDC, the optional eveUSD pairing pool when enabled, SeniorCapitalPool, a faucet, and the market diamond. The faucet is for testnet onboarding only and dispenses USDC and EVE.
 
-Users usually need mock USDC for collateral and may need mock EVE for resolution bonds or governance flows depending on the tested path.
+Users usually need USDC, which they wrap into 18 decimal eveUSDC for default market collateral. Resolution and creator bonds use the configured `bondToken`, which defaults to eveUSDC, so onboarding flows should read `getMarketConfig` before telling a user which asset to fund. Resolvers additionally need EVE, because the resolver seat stake is denominated in EVE, not the bond token.
 
 ## Basic flow
 
 - Claim test USDC and EVE from the faucet.
-- Approve USDC to EveUSD.
-- Wrap USDC into 18 decimal eveUSD.
-- Approve eveUSD or ERC1155 operators as required by the route.
+- Approve USDC to eveUSDC.
+- Wrap USDC into 18 decimal eveUSDC.
+- Approve eveUSDC to the diamond.
+- If participating as a resolver, approve EVE to the diamond for the seat stake.
+- Approve ERC1155 operators, such as ConditionalTokens and the position manager, as required by the route.
 - Create or enter a market.
 - Trade, resolve, and claim through the diamond.
+
+There is no longer an eveETH asset, eveETH market, or eveETH bond path. Do not instruct users to wrap WETH into eveETH.
+
+## Single-transaction funding
+
+The trade router lets a user skip pre-wrapping. `buyWithUSDC` and `splitWithUSDC` wrap USDC into eveUSDC inline via the wrapper's privileged mint, so a funded USDC balance is enough to enter a market in one transaction. The matching `sellWithUSDC` path unwraps on the way out.
 
 ## Allowance display
 
@@ -31,4 +39,4 @@ Frontends should format very large allowances as `Max` or a compact value. Raw `
 
 ## Smoke paths
 
-Useful user-facing smoke tests include market creation, scheduled start gating, orderbook split and merge, ask and bid curve fills, combo book creation, parimutuel entry preview and buy, resolution, settlement, fee claims, faucet claim, wrapping, and unwrapping.
+Useful user-facing smoke tests include market creation, market group creation, collateral profile creation, scheduled start gating, orderbook split and merge, ask and bid curve fills, combo market creation and branch manipulation, parimutuel entry preview and buy, resolver epoch rotation and dispute, settlement, fee claims, faucet claim, wrapping, and unwrapping.

@@ -4,9 +4,9 @@ slug: core/architecture
 label: Architecture
 eyebrow: Core
 title: Protocol architecture
-description: How the diamond, standalone tokens, vaults, routers, CTF integration, and docs level product surfaces fit together.
+description: How the diamond, standalone tokens, capital layer, routers, CTF and native position systems, and product surfaces fit together.
 status: Core
-updated: 2026-05-24
+updated: 2026-07-08
 order: 20
 ---
 
@@ -16,34 +16,42 @@ The market protocol is exposed through a diamond. Facets share canonical market,
 
 | Layer | Examples | Role |
 | --- | --- | --- |
-| Market core | `MarketFactoryFacet`, `MarketViewFacet`, `ParimutuelFacet` | Create and read orderbook and parimutuel markets. |
-| CLOB | `CurveCLOBFacet`, spot book facets, trade routers | Post curves, fill liquidity, split or merge inventory, and operate ERC20 or ERC1155 books. |
-| Resolution | OBR and settlement facets | Resolve markets, report CTF payouts, finalize pools, and redeem or claim. |
-| Collateral | `EveUSD`, `SEveUSDVault`, lending routers | Wrap USDC, hold protocol collateral, distribute vault rewards, and borrow against vault shares. |
-| Tokens | Gnosis CTF, `ParimutuelShareToken` | Represent outcome positions and pooled share balances. |
+| Market core | `MarketFactoryFacet`, `MarketGroupFacet`, `MarketViewFacet`, `ParimutuelFacet` | Create, group, and read orderbook, profile-backed, multi-outcome, and parimutuel markets. |
+| CLOB | Curve and book facets, `TradeRouterFacet`, `TradeRouterSellFacet`, `DelayedOrderFacet` | Post curves, fill liquidity, split or merge inventory, route buys and sells from USDC or eveUSDC, and protect fills with delayed orders. |
+| Margin and MLO | `MarginAccountFacet`, `MarkOracleFacet`, `QuoteEnvelopeFacet`, MLO prediction facets | Margin accounts, risk buckets, mark oracles, and margin-linked-order liquidity. |
+| Resolution | OBR, resolver registry, resolver jury, and settlement facets | Resolve markets, run disputed committee finality, report payouts, finalize pools, and redeem or claim. |
+| Collateral | `EveUSDC`, `EveUSDPool`, `SeniorCapitalPool`, `EvRiskStakingRewards` | Wrap USDC, hold protocol collateral, mint paired tranches, and distribute revenue to the senior pool and active stakers. |
+| Tokens | Gnosis CTF, `ParimutuelShareToken`, `EvesPositionManager`, `ParlayTicketToken`, `EveIdentity` | Represent outcome positions, pooled shares, native positions, parlay tickets, and resolver identities. |
 
 ## Diamond model
 
-Applications should call the diamond address for market functions. Individual facet contracts are implementation modules, not the integration endpoint.
+Applications should call the diamond address for market functions. Individual facet contracts are implementation modules, not the integration endpoint. The diamond exposes 52 facets after a full-stack deploy.
 
-The diamond owns protocol configuration such as default ConditionalTokens, collateral token, fee recipients, market duration bounds, fee splits, parimutuel settings, and creation permissions. These values are live governance or operator settings, so integrations should read `getMarketConfig` instead of hardcoding assumptions.
+The diamond owns protocol configuration such as default ConditionalTokens, default collateral token, collateral profiles, bond token, fee recipients, market duration bounds, fee splits, parimutuel settings, resolver jury settings, the senior capital pool, and creation permissions. These values are live governance or operator settings, so integrations should read `getMarketConfig`, `getCollateralProfile`, and market views instead of hardcoding assumptions.
 
 :::note Integration boundary
-The diamond is the integration boundary. Use standalone contract addresses only for tokens, vaults, lending contracts, and auxiliary routers that are explicitly deployed outside the diamond.
+The diamond is the integration boundary. Use standalone contract addresses only for tokens, the senior pool, staking rewards, the eveUSD pairing pool, and auxiliary routers that are explicitly deployed outside the diamond.
 :::
 
-## Conditional tokens
+## Conditional tokens and native positions
 
-Orderbook markets use Gnosis ConditionalTokens ERC1155 positions. The deploy path can deploy a standard Gnosis ConditionalTokens implementation when no address is provided, or it can wire an existing compatible CTF address into the diamond.
+Orderbook markets use Gnosis ConditionalTokens ERC1155 positions. The deploy path deploys a standard Gnosis ConditionalTokens implementation from a loaded artifact when no address is provided, or wires an existing compatible CTF address into the diamond.
 
-The protocol does not rely on a custom CTF token. Market creation prepares conditions lazily where possible, and combo books derive nested Gnosis CTF collection IDs from existing started markets.
+Native binary and combo positions use an Eves-native ERC1155 position manager rather than Gnosis CTF, so the protocol has two position systems: CTF for the orderbook CTF surface, and native for binary, combo, and parlay scenario positions.
 
 ## Standalone contracts
 
 | Contract | Role |
 | --- | --- |
-| `EveUSD` | 18 decimal USDC backed collateral wrapper. |
-| `SEveUSDVault` | ERC4626 style productive capital layer for eveUSD deposits and registered rewards. |
-| `SEveUSDLending` | Borrowing surface backed by sEVEUSD shares. |
-| `MakerLendingRouter` | Bundled borrow, market making, and unwind flows. |
+| `EveUSDC` | 18 decimal USDC wrapper; default collateral and bond token. |
+| `EveUSD` | Senior tranche minted by the optional WETH pairing pool. |
+| `EveRiskShares` | ERC1155 junior tranche paired 1:1 with eveUSD. |
+| `EveUSDPool` | Pairing pool orchestrator with insurance and recovery. |
+| `EveUSDRouter` | ETH and WETH deposit and recombine helper for the pool. |
+| `SeniorCapitalPool` | ERC4626-style senior vault whose asset is eveUSDC; seniorPool fee recipient. |
+| `EvRiskStakingRewards` | Stakes risk shares and distributes the evRisk fee leg to active stakers. |
+| `EveIdentity` | Soulbound resolver and creator identity NFT. |
 | `ParimutuelShareToken` | ERC1155 share token minted and burned by the diamond for parimutuel markets. |
+| `EvesPositionManager` | ERC1155 ledger for native binary and combo positions. |
+| `ParlayTicketToken` | ERC1155 parlay ticket token. |
+| `Faucet` | Testnet faucet dispensing USDC and EVE. |

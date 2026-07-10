@@ -3,86 +3,77 @@ id: combinatorial-positions
 slug: markets/combinatorial-positions
 label: Combinatorial positions
 eyebrow: Markets
-title: Combinatorial positions
-description: Beta roadmap for parlay-like scenario positions, combo books, complements, and decomposable ERC1155 branches.
-status: Beta roadmap
-updated: 2026-05-23
+title: Combo and native positions
+description: Shipped native binary and combinatorial position primitives, combo markets, parlay tickets, and decomposable ERC1155 branches.
+status: Markets
+updated: 2026-07-08
 order: 120
 ---
 
-## What a combo position is
+## What shipped
 
-A combo position is a planned beta ERC1155 scenario token that represents a
-conjunction across multiple started orderbook markets. For example, a trader
-could express `A AND B AND C` as one position ID instead of manually managing
-separate branches.
+Combinatorial and native positions are deployed, not roadmap. The diamond carries a full native position stack: native binary conditions, combo core operations, branch manipulation, settlement, views, and combo market creation. These build on an Eves-native ERC1155 position manager rather than requiring Gnosis CTF for every leg.
 
-These positions are parlay-like, but they are not traditional sportsbook
-parlays. A combo is a decomposable conditional position: parts of the tree can be
-split, merged, compressed, or traded when the holder owns or acquires the
-required complementary branches.
+| Facet | Owns |
+| --- | --- |
+| NativeBinaryPositionFacet | prepare, split, merge, redeem native binary conditions |
+| ComboCoreFacet | prepare combo conditions, split, merge, wrap, unwrap combos |
+| ComboBranchFacet | split/merge on condition, extract/inject NO legs, convert NO baskets |
+| ComboSettlementFacet | compress, redeem, payout |
+| ComboViewFacet | native metadata, compressibility, compression preview |
+| ComboMarketFacet | create combo markets, compute book ids |
 
-## Alpha boundary
+## Native binary positions
 
-The current alpha focuses on orderbook and CLOB market behavior. That data still
-matters for beta because combo books will reuse the same maker concepts:
-inventory, quotes, curve updates, fills, and fee accounting.
+`NativeBinaryPositionFacet` lets a market prepare a binary condition and split collateral into native YES and NO positions, merge them back, and redeem after resolution. This is the native equivalent of the CTF split and merge flow, without depending on the external ConditionalTokens contract.
 
-Combinatorial positions are not required for the alpha CLOB rollout.
+## Combo positions
 
-## Beta direction
+A combo position is an ERC1155 scenario token that represents a conjunction across multiple markets. A trader can express `A AND B AND C` as one position ID instead of managing separate branches.
 
-The beta target is an Eves-native ERC1155 position manager with binary and
-combinatorial modules. Gnosis CTF remains the semantic reference, but beta
-parity requires higher-level operations such as compression, extraction,
-wrap/unwrap, and complement acquisition.
+These positions are parlay-like, but they are decomposable conditional positions: parts of the tree can be split, merged, compressed, wrapped, or traded when the holder owns or acquires the required complementary branches.
 
-Combo markets should use dedicated ERC1155 combo/branch books. They should not
-be treated as Spot books, because Spot is the ERC20 DEX surface.
+`ComboCoreFacet` prepares the combo condition and exposes split, merge, wrap, and unwrap. Wrapping bundles a combo into a single transferable token; unwrapping decomposes it back into its legs.
 
-## Unbundling and complements
+## Combo markets
 
-The important caveat is that unbundling is not magic. Moving upward in the tree
-requires the holder to own the complementary branches needed to merge.
+Combo markets are created with `createComboMarket`, not a generic book creator. They use native binary or combo ERC1155 positions as base inventory and belong to the combinatorial flow, not the ERC20 spot surface. `computeComboBookId` derives the deterministic book id for a combo market.
 
-If a user owns:
+## Branch manipulation
 
-```text
-A.YES AND B.YES
-```
+Moving around the combo tree is explicit. `ComboBranchFacet` exposes the operations that restructure a position when the complementary branches are available.
 
-and needs:
-
-```text
-A.YES AND B.NO
-```
-
-the beta UX should let the user bid for that missing branch or let a maker fill a
-top-up reward and merge the position in one transaction.
+| Function | Effect |
+| --- | --- |
+| `splitComboOnCondition` | Split a combo further on a new condition. |
+| `mergeComboOnCondition` | Merge a split back up the tree. |
+| `extractComboNoLeg` | Pull a NO leg out of a combo. |
+| `injectComboNoLeg` | Add a NO leg back in. |
+| `convertComboNoToYesBasket` | Convert a NO leg into an equivalent YES basket. |
+| `mergeComboNoFromYesBasket` | Reassemble a NO leg from a YES basket. |
 
 :::warning Complement requirement
-`NO(A AND B)` is not the same as `NO(A) AND NO(B)`. Combo UX must distinguish the
-complement of an entire scenario from individually negated legs.
+`NO(A AND B)` is not the same as `NO(A) AND NO(B)`. Combo UX must distinguish the complement of an entire scenario from individually negated legs. Extraction and conversion only work when the holder owns the complementary branches needed to merge.
 :::
+
+## Parlays
+
+The parlay facet set is the underwriter-backed realization of multi-leg scenario tickets. A parlay is expressed as an ERC1155 ticket whose payout depends on every leg resolving correctly, with payout tiers and an underwriting fee.
+
+| Facet | Owns |
+| --- | --- |
+| ParlayUnderwritingFacet | post and fill parlay offers and requests |
+| ParlayBudgetFacet | funded budgets that sponsor offer and request batches |
+| ParlaySettlementFacet | finalize ticket buckets and claim tickets |
+| ParlayBookFacet | create parlay ticket books |
+| ParlayViewFacet | template and ticket ids, offer/request state, ticket URIs |
+| ParlayAdminFacet | parlay config and strategy emission |
+| ParlayMulticallFacet | batched calls |
+
+Parlay tickets are distinct ERC1155 balances minted by `ParlayTicketToken`. They are not the same as combo positions: a combo decomposes into tradeable legs, while a parlay ticket settles as one unit against its leg set.
 
 ## Pricing
 
-A core combo claim pays at most one collateral unit. An 8-leg combo is not worth
-more than $1 because it has 8 legs; the upside comes from buying a low-probability
-scenario below its maximum payout.
+A core combo claim pays at most one collateral unit. An 8-leg combo is not worth more than one collateral unit because it has 8 legs; the upside comes from buying a low-probability scenario below its maximum payout.
 
-Makers can charge a premium above implied fair probability, but the book should
-not accept prices above the maximum redeemable payout for the claim.
-
-## Liquidity model
-
-The beta liquidity model is executable book liquidity from makers:
-
-- makers create and sell actual combo inventory
-- users bid for missing sibling branches
-- creators curate scenario books with their own pricing
-- arbitrageurs can trade between binary books and combo books
-
-This does not claim instant liquidity from every underlying binary market.
-Synthetic routing can be researched later, but the beta promise is maker-backed
-combo/branch books.
+Makers can charge a premium above implied fair probability, but the book should not accept prices above the maximum redeemable payout for the claim.

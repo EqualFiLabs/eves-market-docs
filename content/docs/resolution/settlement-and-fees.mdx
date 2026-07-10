@@ -4,36 +4,93 @@ slug: resolution/settlement-and-fees
 label: Settlement and fees
 eyebrow: Resolution
 title: Settlement and fees
-description: Redemption paths and the separate fee configurations for orderbook, spot, and parimutuel markets.
+description: Redemption paths and the per-surface fee configurations that fan out to makers, creators, treasury, senior pool, resolvers, and EvRisk stakers.
 status: Resolution
-updated: 2026-05-24
+updated: 2026-07-08
 order: 210
 ---
 
 ## Redemption
 
-Settlement is market-type aware. Orderbook CTF positions redeem through ConditionalTokens payout vectors. Parimutuel positions claim against a finalized pool snapshot.
+Settlement is market-type and collateral-profile aware. Orderbook CTF positions redeem through ConditionalTokens payout vectors into the market collateral. Parimutuel positions claim against a finalized pool snapshot in the market collateral.
 
-Before resolution, matching CTF YES and NO balances can merge back into collateral. After resolution, holders should follow the winning-side redemption path.
+Before resolution, matching CTF YES and NO balances can merge back into collateral. After resolution, holders follow the winning-side redemption path. Settlement preview helpers (`previewCTFRedemption`, `previewParimutuelPayout`, `previewRedemption`) live on the market settlement facet.
+
+For profile markets, redemption and fee accounting stay collateral-native. An eveUSDC market redeems eveUSDC; an eveUSD-profile market redeems eveUSD. Cross-collateral aggregation is an offchain display concern and should be labeled as estimated value if used.
 
 ## Fee configurations
 
-Fees are separated by market surface. Do not use legacy shared names or describe all markets as having the same creator fee path.
+Fees are separated by market surface. Each surface has an independent take rate plus a basis-point split that must sum to exactly 10000. The split no longer has a vault leg. Instead it fans out to the senior pool, resolvers, and EvRisk stakers, with a treasury fallback when a recipient is ineligible.
 
-| Surface | Fee config |
+### Orderbook
+
+Take rate `orderbookEntryFeeBps`, default 100 bps. The split is six-way.
+
+| Leg | Default bps |
 | --- | --- |
-| Orderbook | `orderbookEntryFeeBps`, maker, creator, protocol, and vault split. |
-| Spot | `spotTradeFeeBps`, maker, protocol, and vault split. No creator fee. |
-| Parimutuel | `parimutuelEntryFeeBps`, creator, protocol, and vault split. |
+| maker | 4000 |
+| creator | 500 |
+| protocol | 1000 |
+| seniorPool | 2500 |
+| resolver | 500 |
+| evRisk | 1500 |
 
-## Spot fee naming
+### Spot
 
-Spot uses trade fees. Avoid `SPOT_ENTRY_FEE_BPS` in docs and deploy guides. Use `SPOT_TRADE_FEE_BPS`.
+Take rate `spotTradeFeeBps`, default 100 bps. The split is five-way and has no creator leg.
 
-The internal book fee struct can map spot trade fee into a shared `entryFeeBps` field for execution accounting, but that is an implementation detail. Product and deployment docs should call it a spot trade fee.
+| Leg | Default bps |
+| --- | --- |
+| maker | 4000 |
+| protocol | 1500 |
+| seniorPool | 2500 |
+| resolver | 500 |
+| evRisk | 1500 |
+
+### Combo
+
+Take rate `comboTradeFeeBps`, default 100 bps. The split is six-way, like orderbook.
+
+| Leg | Default bps |
+| --- | --- |
+| maker | 4000 |
+| creator | 500 |
+| protocol | 1000 |
+| seniorPool | 2500 |
+| resolver | 500 |
+| evRisk | 1500 |
+
+### Parimutuel
+
+Take rate `parimutuelEntryFeeBps`, default 250 bps. The split is five-way.
+
+| Leg | Default bps |
+| --- | --- |
+| creator | 500 |
+| protocol | 5000 |
+| seniorPool | 2500 |
+| resolver | 500 |
+| evRisk | 1500 |
+
+### Parlay
+
+Parlay fees live in a separate config, not in the market config. `seniorPoolFeeBps` plus `feeRecipientBps` must sum to 10000. Defaults route all of the fee recipient share to the treasury and none to the senior pool, with an underwriting fee of 3 eveUSDC.
+
+## Fee routing recipients
+
+Each non-maker, non-creator leg has a specific destination, decided inline at fee time.
+
+| Leg | Destination | Fallback |
+| --- | --- | --- |
+| maker | fee router accrual, claimable by the maker | n/a |
+| creator | fee router accrual, claimable by the creator | n/a |
+| protocol | treasury | n/a |
+| seniorPool | `SeniorCapitalPool.notifyRevenue` | treasury, when token is not eveUSDC or supply is zero |
+| resolver | accrued per active epoch to compliant resolvers | treasury, when no epoch is active |
+| evRisk | `EvRiskStakingRewards.notifyReward` to active stakers | treasury, when staking is unset |
+
+Because every leg resolves in the same transaction, a fee event is final from an indexer's perspective and does not depend on a later claim.
 
 ## Fee claiming
 
-Makers can claim maker fees where the CLOB accrues them. Eligible creators can claim creator fees for markets that support creator fees and satisfy the resolution eligibility rules.
-
-Spot books do not have a creator fee in the current protocol.
+Makers claim accrued maker fees on the fee router facet, and eligible creators claim creator fees for surfaces that carry a creator leg. Spot books have no creator fee. Resolver rewards are finalized per epoch and claimed through the resolver rewards facet, not the market fee router.

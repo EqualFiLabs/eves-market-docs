@@ -4,47 +4,51 @@ slug: introduction
 label: Introduction
 eyebrow: Protocol docs
 title: Eves Market Protocol
-description: Onchain prediction markets with curve order books, combinatorial CTF positions, parimutuel pools, scheduled market creation, optimistic resolution, and USDC backed collateral.
+description: Onchain prediction markets with curve order books, native and CTF combo positions, parimutuel pools, parlay tickets, scheduled market creation, optimistic resolution, and configurable collateral.
 status: Protocol docs
-updated: 2026-05-24
+updated: 2026-07-08
 order: 10
 ---
 
 ## What Eves Market provides
 
-Eves Market is an onchain prediction market protocol built around several trading surfaces rather than a single market primitive. Builders can create binary orderbook markets, pooled parimutuel markets, ERC20 spot books, and CTF based combo books.
+Eves Market is an onchain prediction market protocol built around several trading surfaces rather than a single market primitive. Builders can create binary orderbook markets, multi-outcome markets, native and CTF combo markets, pooled parimutuel markets, underwriter-backed parlay tickets, and ERC20 spot books.
 
-The protocol uses eveUSD as the execution collateral rail. Users can wrap USDC into 18 decimal eveUSD, split collateral into CTF outcome inventory, enter parimutuel pools, post maker curves, or deposit idle capital into the sEVEUSD vault.
+The default execution rail is eveUSDC. Users wrap USDC into 18 decimal eveUSDC, split collateral into outcome inventory, enter parimutuel pools, post maker curves, or route buys and sells in a single transaction from a USDC balance.
+
+The protocol also supports explicit collateral profiles. A profile can point a market at another ERC20 collateral, such as eveUSD from the optional WETH pairing pool, with its own payout unit, creation fee, parimutuel minimum, and parlay underwriting fee. Integrations should read market collateral and payout units from the market or profile instead of assuming every market settles in eveUSDC.
 
 | Surface | Purpose |
 | --- | --- |
-| Orderbook markets | Binary CTF markets with YES and NO ERC1155 positions traded against eveUSD. |
-| Combinatorial positions | Nested Gnosis CTF positions that express a multi-leg scenario as one ERC1155 asset. |
+| Orderbook markets | Binary and multi-outcome CTF markets with YES and NO ERC1155 positions traded against the market collateral. |
+| Combinatorial positions | Native binary and combo ERC1155 positions that express multi-leg scenarios as one asset. |
+| Parlay tickets | Underwriter-backed ERC1155 tickets that settle against a leg set. |
 | Parimutuel markets | Pooled YES/NO markets with weighted shares and epoch multipliers. |
 | Spot books | ERC20 base and quote books for a standalone onchain DEX style surface. |
-| Resolution | Optimistic market settlement with disputes, escalation, and final redemption paths. |
-
-## Current alpha surfaces
-
-The current alpha protocol prioritizes Polymarket-like CTF compatibility for orderbook and combo markets. It uses a standard Gnosis ConditionalTokens contract and nested collection IDs for combo positions.
-
-Scheduled creation is also part of the active surface. Market creators can create future markets with a `tradingStartTime`, so batches such as 24 one-hour BTC markets can be prepared without immediately opening trading or parimutuel entry.
+| Resolution | Optimistic market settlement with disputes, resolver jury escalation, and final redemption paths. |
+| Portal | Wallet funding surface for swap, bridge, and wrap routes. |
 
 ## Mechanism map
 
 | Mechanism | What it enables |
 | --- | --- |
-| Gnosis CTF orderbooks | Collateral-backed YES and NO ERC1155 positions with merge and redeem paths. |
+| CTF orderbooks | Collateral-backed YES and NO ERC1155 positions with merge and redeem paths. |
+| Native positions | Eves-native ERC1155 binary and combo positions with split, merge, compress, and wrap. |
 | Curve CLOB | Maker liquidity as flat orders or time-aware price schedules. |
-| Combo books | Dedicated books for nested multi-leg CTF scenario positions. |
+| Delayed orders | Front-running-protected curve fills through a FIFO queue. |
 | Parimutuel pools | Pooled directional markets with early-conviction epoch multipliers. |
-| Scheduled creation | Future markets that can be indexed before trading or entry opens. |
-| Optimistic resolution | Creator settlement, disputes, escalation, and final payout reporting. |
-| eveUSD and sEVEUSD | USDC-backed execution collateral plus a productive vault layer for idle capital. |
+| Scheduled creation | Future markets and market groups that can be indexed before trading opens. |
+| Optimistic resolution | Creator settlement, disputes, resolver jury escalation, and final payout reporting. |
+| Fee routing | Revenue fans out to makers, creators, treasury, the senior pool, resolvers, and EvRisk stakers. |
+| Collateral profiles | Default eveUSDC markets plus optional eveUSD-profile markets. |
+
+## Capital layer
+
+The base collateral is eveUSDC, an 18 decimal USDC wrapper that is also the default resolution bond token. An optional WETH-collateralized pairing pool mints a senior eveUSD tranche paired 1:1 with risk shares, and protocol revenue routes to a senior capital pool and to active risk-share stakers. See the collateral section for both.
 
 ## Choose your path
 
-- Traders should start with orderbook markets, parimutuel markets, collateral, and settlement.
-- Market makers should read Curve CLOB, combinatorial positions, spot books, and fee configuration.
-- Creators should read market creation, scheduled markets, parimutuel epoch windows, and optimistic resolution.
-- Builders and indexers should read the builder reference, indexing guide, deployment operators page, and token model.
+- Traders should start with orderbook markets, parimutuel markets, eveUSDC collateral, portal funding, and settlement.
+- Market makers should read Curve CLOB, combinatorial positions, spot books, delayed orders, and fee configuration.
+- Creators should read market creation, market groups, collateral profiles, scheduled markets, parimutuel epoch windows, and optimistic resolution.
+- Builders and indexers should read the builder reference, indexing guide, deployment page, and token model.

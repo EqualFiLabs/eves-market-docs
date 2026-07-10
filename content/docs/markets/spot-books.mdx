@@ -4,21 +4,21 @@ slug: markets/spot-books
 label: Spot books
 eyebrow: Markets
 title: Standalone ERC20 spot books
-description: ERC20 standalone books for the onchain spot trading surface, separated from prediction combo books.
+description: ERC20 standalone books for the onchain spot trading surface, separated from prediction combo markets.
 status: Markets
-updated: 2026-05-24
+updated: 2026-07-08
 order: 140
 ---
 
 ## Scope
 
-Spot books are ERC20 base and quote books. They are the standalone DEX-style surface and should not be described as prediction combo books.
+Spot books are ERC20 base and quote books. They are the standalone DEX-style surface and should not be described as prediction combo markets.
 
-ERC1155 combo books are created with `createComboBook`, use Gnosis CTF positions as base inventory, and belong in the combinatorial positions flow.
+Combo markets are created with `createComboMarket`, use native binary or combo ERC1155 positions as base inventory, and belong in the combinatorial positions flow. There is no `createComboBook` function.
 
 ## Book identity
 
-The public `computeBookId` signature accepts creator, asset type, transfer mode, base token, token ID, quote token, tick preset, and salt. For ERC20 books, the current library canonicalizes the ID by ordered base and quote token. Integrations should still call `computeBookId` rather than duplicating hashing logic.
+The public `computeBookId` signature accepts creator, asset type, transfer mode, base token, token ID, quote token, tick preset, and salt. For ERC20 books, the library canonicalizes the ID by ordered base and quote token. Integrations should still call `computeBookId` rather than duplicating hashing logic.
 
 | Input | Guidance |
 | --- | --- |
@@ -27,12 +27,16 @@ The public `computeBookId` signature accepts creator, asset type, transfer mode,
 | Tick preset | Determines the generic spot tick size. |
 | Salt | Accepted by the ABI, but current ERC20 book identity is canonical by ordered pair. |
 
+## Book lifecycle
+
+A standalone spot book is created with `createBook` and can later be retired through a two-step decommission: `requestBookDecommission` then `finalizeBookDecommission`. This lets a book wind down cleanly once its liquidity is withdrawn rather than lingering as an empty record.
+
 ## Fees
 
-Spot uses a spot trade fee, not a spot entry fee. The spot fee split has maker, protocol, and vault components. There is no spot creator fee in the current protocol.
+Spot uses a spot trade fee, not a spot entry fee. The spot fee split is five-way: maker, protocol, seniorPool, resolver, and evRisk. There is no spot creator fee and no vault leg in the current protocol.
 
-Spot book creation can also charge a separate creation fee routed to treasury.
+Spot book creation can also charge a separate creation fee routed to treasury. Use `SPOT_TRADE_FEE_BPS` in deploy guides and product docs; avoid the legacy entry-fee naming.
 
 ## Transfer modes
 
-The code supports transfer-mode metadata at the book level. Apps should read `baseTransferMode` from `getBookInfo` and follow the live ABI. Do not infer support for ERC1155 spot books from the transfer mode enum.
+The code supports transfer-mode metadata at the book level. Apps should read `baseTransferMode` from `getBookInfo` and follow the live ABI. ERC20 spot books only support the transfer modes the library permits for ERC20 bases; do not infer support for ERC1155 spot books from the transfer mode enum.

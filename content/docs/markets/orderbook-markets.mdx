@@ -4,17 +4,17 @@ slug: markets/orderbook-markets
 label: Orderbook markets
 eyebrow: Markets
 title: Orderbook prediction markets
-description: Binary CTF markets where eveUSD collateral becomes complementary YES and NO ERC1155 positions traded through curve books.
+description: Binary CTF markets where market collateral becomes complementary YES and NO ERC1155 positions traded through curve books.
 status: Markets
-updated: 2026-05-23
+updated: 2026-07-08
 order: 110
 ---
 
 ## The YES and NO token model
 
-Orderbook markets use Gnosis ConditionalTokens. One unit of eveUSD collateral can be split into matching YES and NO ERC1155 balances for a market condition.
+Orderbook markets use Gnosis ConditionalTokens. One unit of the market collateral can be split into matching YES and NO ERC1155 balances for a market condition.
 
-Those positions are complementary before resolution. A holder with equal YES and NO balances can merge them back into eveUSD. After resolution, the winning side redeems according to the reported CTF payout vector and the losing side has no payout.
+Those positions are complementary before resolution. A holder with equal YES and NO balances can merge them back into the market collateral. After resolution, the winning side redeems according to the reported CTF payout vector and the losing side has no payout.
 
 ## Book structure
 
@@ -22,8 +22,8 @@ Each orderbook market has deterministic YES and NO side book IDs. These IDs are 
 
 | Book | Base inventory | Quote |
 | --- | --- | --- |
-| YES book | YES ERC1155 CTF position | eveUSD |
-| NO book | NO ERC1155 CTF position | eveUSD |
+| YES book | YES ERC1155 CTF position | Market collateral |
+| NO book | NO ERC1155 CTF position | Market collateral |
 
 :::note Lazy materialization
 The market creates deterministic side book IDs, not necessarily registered book records. Check `isBookMaterialized(bookId)` or wait for `BookCreated` before assuming the full book info exists.
@@ -31,12 +31,33 @@ The market creates deterministic side book IDs, not necessarily registered book 
 
 ## Splitting and merging inventory
 
-`splitInventory(marketId, collateralAmount)` consumes eveUSD and mints equal YES and NO balances. Router paths can wrap USDC into eveUSD and split in one flow.
+`splitInventory(marketId, collateralAmount)` consumes the market collateral and mints equal YES and NO balances. For default markets this is eveUSDC. For profile markets it is the profile's collateral, such as eveUSD.
 
-`mergeInventory(marketId, shareAmount)` burns matching YES and NO balances and returns eveUSD before the market is resolved. Merging is only possible when the holder owns the complementary branch needed to go upward.
+`mergeInventory(marketId, shareAmount)` burns matching YES and NO balances and returns the market collateral before the market is resolved. Merging is only possible when the holder owns the complementary branch needed to go upward.
+
+Split and merge live on the curve inventory facet. They are the entry point to maker inventory before any curve is posted.
+
+## Facet layout
+
+The CLOB surface is spread across dedicated facets rather than one monolith, each owning a narrow responsibility. All resolve against the diamond address.
+
+| Facet | Owns |
+| --- | --- |
+| CurveInventoryFacet | `splitInventory`, `mergeInventory` |
+| CurveLifecycleFacet | post, update, top-up, cancel, and batch curve management |
+| CurveCLOBFacet | `fillCurve`, `fillBest` |
+| CurveViewFacet | curve info, commitment, previews, top of book |
+| BookFacet | book creation, decommission, side book views |
+| BookOrderFacet | book curve posting and reactivation |
+| BookTradeFacet | book fills and sells |
+| BookViewFacet | book execution preview, top of book |
 
 ## Trading
 
 Makers post ask curves by escrowing base inventory, or bid curves by escrowing quote collateral. Takers fill curves with slippage bounds and expected curve generations or commitments.
 
 Execution does not create free liquidity from the binary pair. A book only has executable liquidity when makers have collateralized posted curves.
+
+## Multi-outcome markets
+
+Beyond binary YES and NO, `MultiOutcomeOrderbookFacet` creates markets with more than two outcomes, splitting collateral into an outcome set and supporting split, merge, and redeem per outcome. Its view counterpart exposes the outcome set, position IDs, and per-outcome book state.

@@ -4,9 +4,9 @@ slug: reference/indexing
 label: Indexing
 eyebrow: Reference
 title: Indexing guide
-description: Events and read-model rules for markets, lazy books, combos, parimutuel pools, settlement, and vault activity.
+description: Events and read-model rules for markets, lazy books, combos, parimutuel pools, resolution finality, and fee distribution.
 status: Reference
-updated: 2026-05-23
+updated: 2026-07-08
 order: 530
 ---
 
@@ -25,20 +25,33 @@ Indexers should:
 - Store deterministic side book IDs from `getMarketSideBook`.
 - Treat `isBookMaterialized(bookId) == false` as a valid pre-liquidity state.
 - Add full book records when `BookCreated` fires or when `getBookInfo` succeeds.
-- Track combo and ERC20 spot books from explicit `BookCreated` events.
+- Track combo, native, and ERC20 spot books from explicit `BookCreated` events.
 
 ## Activity streams
 
 | Event family | Use |
 | --- | --- |
-| Market creation | Discovery and upcoming market calendars. |
-| Book creation | Materialized books, ERC20 spot books, and combo books. |
+| Market and group creation | Discovery, market groups, and upcoming calendars. |
+| Book creation | Materialized books, ERC20 spot books, combo and native books. |
 | Curve posted or updated | Maker liquidity state. |
 | Curve filled or trade routed | Taker execution and volume. |
+| Delayed order submitted, processed, expired | FIFO protected execution lifecycle. |
 | Parimutuel shares bought | Pool entry, implied probability, and share balances. |
 | Resolution finalized | Settlement cutover. |
 | Payout claimed or redeemed | Post-resolution user accounting. |
 
+## Resolution finality
+
+Resolver jury events are the primary signal for dispute finality and should be indexed as a first-class stream. The family covers dispute initiation, randomness commit and reveal, committee selection, vote commit and reveal, tally, appeal, and finalization, plus the resolver epoch rotation events that mark when membership changes.
+
+Resolver reward accrual and finalization events mark when trading-fee rewards become claimable per epoch. Before an active epoch exists, resolver and identity fees route to the treasury, so indexers tracking protocol revenue should treat treasury receipts as authoritative during bootstrap.
+
+## Fee distribution
+
+Every fee leg resolves in the transaction that produced it, so a fee event is final rather than pending a later claim. Indexers tracking protocol revenue must capture all sinks, not just treasury: maker and creator accruals on the fee router, the seniorPool leg into SeniorCapitalPool, the resolver leg accrued per epoch, and the evRisk leg pushed to EvRiskStakingRewards. The seniorPool and evRisk legs fall back to treasury when their recipient is ineligible, so a treasury receipt does not always mean the protocol fee alone.
+
+EvRisk staking events cover reward notification, staking and unstaking, claims, and the treasury fallback when a series is inactive or has no stakers.
+
 ## Combo indexing
 
-Combo books should store their leg list offchain from the transaction input or app metadata. The onchain book tells you the base token and position ID, but human-readable combo UX needs the leg markets and index sets.
+Combo and native books should store their leg list offchain from the transaction input or app metadata. The onchain book tells you the base token and position ID, but human-readable combo UX needs the leg markets and index sets. Native binary and combo positions are minted by the Eves-native position manager, so track position metadata through the combo view facet rather than assuming Gnosis CTF wallets for every leg.

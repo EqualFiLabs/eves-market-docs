@@ -126,7 +126,7 @@ export function DocsPage({ page }: { page: DocPageType }) {
             <Link href="/docs/markets/combinatorial-positions">Combos</Link>
             <Link href="/docs/resolution/optimistic-resolution">Resolution</Link>
             <Link href="/docs/reference/base-sepolia-deployment">Addresses</Link>
-            <Link href="/docs/collateral/eveusd-and-seveusd">Collateral</Link>
+            <Link href="/docs/collateral/eveusdc">Collateral</Link>
           </nav>
         </div>
       </header>

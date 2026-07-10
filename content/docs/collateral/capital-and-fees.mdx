@@ -1,0 +1,69 @@
+---
+id: capital-and-fees
+slug: collateral/capital-and-fees
+label: Senior capital and rewards
+eyebrow: Collateral
+title: Senior pool, EvRisk staking, and fee routing
+description: How protocol revenue fans out to the SeniorCapitalPool, active EvRisk stakers, resolvers, and treasury.
+status: Collateral
+updated: 2026-07-08
+order: 315
+---
+
+## Where fees go
+
+Every trading surface splits its fee take across several legs. The old single vault sink is gone. Instead the senior pool, active EvRisk stakers, resolvers, and the treasury each receive a slice, with explicit eligibility fallbacks so a fee never gets stuck.
+
+| Recipient | Receives | Mechanism |
+| --- | --- | --- |
+| Maker | maker fee leg | claimable on the fee router facet |
+| Creator | creator fee leg | claimable on the fee router facet |
+| Protocol treasury | protocol fee leg | sent to `eveTreasury` |
+| SeniorCapitalPool | seniorPool fee leg | `notifyRevenue`, falls back to treasury if ineligible |
+| Resolvers | resolver fee leg | accrued per epoch, claimed later |
+| EvRisk stakers | evRisk fee leg | `notifyReward`, falls back to treasury if unset |
+
+Exact default basis-point values per surface are documented on the settlement and fees page.
+
+## SeniorCapitalPool
+
+SeniorCapitalPool is an ERC4626-style vault whose asset is eveUSDC. It holds the senior tranche of protocol capital and is the recipient of every seniorPool fee leg. It is always deployed by the full stack.
+
+- ERC20 symbol `seveUSDC`, 18 decimals inherited from eveUSDC.
+- `asset()` returns eveUSDC; deposits mint shares, withdrawals burn shares.
+- Receives revenue via `notifyRevenue(token, amount)`, which reverts for any token other than eveUSDC.
+
+A seniorPool fee only actually lands in the pool when it is eligible: the routed token must equal `asset()` and total supply must be non-zero. Otherwise the amount falls through to the treasury so capital is never stranded.
+
+:::note Phase 1 scope
+The senior pool is standalone in this phase: no lending hooks, no AUM fee, no reward index. It receives revenue, honors deposits and withdrawals bounded by available capital, and exposes risk-manager encumbrance hooks for the market diamond.
+:::
+
+## EvRiskStakingRewards
+
+EvRiskStakingRewards distributes the evRisk fee leg to active stakers of the EveRiskShares junior tranche. It is deployed only when the optional EveUSD pairing pool is present, because there are no risk shares to stake without it.
+
+- Stakes ERC1155 risk shares of the pool's active series and accrues rewards per series, per reward token.
+- `notifyReward(token, amount)` is called at trade time to push the evRisk fee in.
+- Rewards route to the treasury when the active series is not active, when no shares are staked, or when the increment would be zero.
+
+Because staking is keyed by series, a staker's accrued rewards do not move automatically when the pool rolls to a successor series. Integrations should preview per series with `previewClaim` and let users claim or exit each series independently.
+
+## Eligibility and fallback
+
+Both the senior-pool and EvRisk routes decide eligibility inline at fee time, not later.
+
+| Route | Eligible when | Otherwise |
+| --- | --- | --- |
+| Senior pool | token equals eveUSDC and `totalSupply() > 0` | amount goes to treasury |
+| EvRisk stakers | `evRiskStakingRewards` is configured | amount goes to treasury |
+
+This means protocol revenue is always distributed in the same transaction that produced it, and indexers can treat a fee event as final rather than pending a later claim.
+
+## Insurance reserve
+
+Separately from fee routing, each EveUSD pool profile holds an insurance reserve in raw collateral. The reserve is the first loss-absorber when a senior tranche is impaired at recovery finalization: insurance is drawn before any loss is socialized across the senior pool or stakers. See the EveUSD pairing pool page for the reserve views and top-up flow.
+
+## Wiring at deploy
+
+Both recipients are wired automatically. The deploy sets the senior pool on the MLO adapter and sets `evRiskStakingRewards` on the market config when the eveUSD stack is active. The senior pool is bootstrapped with a small eveUSDC deposit whenever any fee surface carries a seniorPool leg, so the very first eligible fee has somewhere to land.

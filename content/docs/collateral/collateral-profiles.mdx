@@ -1,0 +1,56 @@
+---
+id: collateral-profiles
+slug: collateral/collateral-profiles
+label: Collateral profiles
+eyebrow: Collateral
+title: Collateral profiles
+description: How markets settle in an ERC20 other than the default eveUSDC collateral using explicit profiles, payout units, and collateral-native accounting.
+status: Collateral
+updated: 2026-07-08
+order: 310
+---
+
+## Profile model
+
+Collateral profiles let the protocol support markets that settle in an ERC20 other than the default collateral. The default collateral is eveUSDC. A profile-backed market stores its own collateral token, payout unit, and profile id, and every fee, payout, and redemption for that market is denominated in that profile's token.
+
+| Field | Meaning |
+| --- | --- |
+| `collateralToken` | ERC20 used for splitting, buying, fees, settlement, and redemption. |
+| `payoutUnit` | Raw collateral units represented by one displayed share or payout unit. |
+| `marketCreationFee` | Profile-specific creation fee. |
+| `parimutuelMinEntry` | Profile-specific parimutuel minimum. |
+| `parlayUnderwritingFee` | Profile-specific parlay underwriting fee. |
+| `enabled` | Whether creators can use the profile. |
+
+## Registered profiles
+
+The default collateral, eveUSDC, backs the standard market surface. The only additional profile the deploy registers automatically is eveUSD, and only when the optional EveUSD pairing pool is enabled. There is no longer an eveETH profile and no eveETH contract in the system.
+
+Read a profile back with `getCollateralProfile(profileId)` on the market view facet rather than hard-coding an asset.
+
+## Profile creation
+
+Profile-backed markets use explicit creation variants that take a profile id.
+
+| Surface | Function |
+| --- | --- |
+| Binary orderbook | `createMarketWithCollateralProfile` |
+| Parimutuel | `createParimutuelMarketWithCollateralProfile` |
+| Multi-outcome orderbook | `createMultiOutcomeMarketWithCollateralProfile` |
+| Parlay quotes | `postParlayOfferWithCollateralProfile` and `postParlayRequestWithCollateralProfile` |
+| Parlay budgets | `createParlayBudgetWithCollateralProfile` |
+
+Each variant also has a legacy positional overload for backwards compatibility, but the struct-param signatures that carry display and external reference metadata are the canonical entry points.
+
+## Accounting rules
+
+Profile accounting stays collateral-native. An eveUSDC market takes eveUSDC, escrows eveUSDC, routes eveUSDC fees, and redeems eveUSDC. An eveUSD-profile market does the same with eveUSD. Fee legs are computed in the market's own collateral and routed to recipients in that same token.
+
+Do not aggregate eveUSDC and eveUSD into one raw protocol balance. If an app shows a combined portfolio value, label it as an estimated offchain conversion.
+
+## Integration boundaries
+
+- The USDC router helper paths, `buyWithUSDC` and `splitWithUSDC`, wrap into eveUSDC and are intended for default eveUSDC markets. They should not be offered against eveUSD-profile markets.
+- CLOB, parimutuel, multi-outcome, combo, and parlay accounting should use each market's stored collateral token and payout unit.
+- Wallet UIs should show the collateral symbol beside every amount, fee, balance, and payout.

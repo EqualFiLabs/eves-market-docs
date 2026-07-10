@@ -6,7 +6,7 @@ eyebrow: Core
 title: Market lifecycle
 description: The scheduled, trading, expired, resolved, and claimed stages for orderbook and parimutuel markets.
 status: Core
-updated: 2026-05-23
+updated: 2026-06-04
 order: 30
 ---
 
@@ -19,10 +19,14 @@ Markets now have a start time and an expiry time. Creation can happen before tra
 | Scheduled | The market exists, but `block.timestamp` is before `tradingStartTime`. |
 | Trading | Trading or parimutuel entry is open between `tradingStartTime` and `expiryTime`. |
 | Expired | New exposure is closed and the market is waiting for resolution. |
-| Resolution | Creator settlement, disputes, escalation, or voting establish the final outcome. |
+| Resolution | Creator settlement, disputes, escalation, or resolver jury finality establish the final outcome. |
 | Settlement | Winning CTF positions redeem or parimutuel shares claim against the finalized pool snapshot. |
 
 Orderbook curves and combo books require started markets. Parimutuel entries also require the market to have reached `tradingStartTime`.
+
+## Delayed orders
+
+Within the trading stage, the delayed order facet offers a front-running-protected variant of curve fills. A submitted delayed order waits a configured protection delay before it becomes executable, then is processed from the queue head, with explicit expiry and grace windows. Delayed orders are a sub-state of trading, not a separate market stage.
 
 ## Scheduled creation
 
@@ -38,7 +42,7 @@ A creator can prepare 24 one-hour markets in one or more batches, then only mana
 
 | Topic | Orderbook | Parimutuel |
 | --- | --- | --- |
-| Position creation | Split eveUSD into complementary CTF YES and NO. | Buy weighted YES or NO pool shares. |
+| Position creation | Split market collateral into complementary CTF YES and NO. | Buy weighted YES or NO pool shares with market collateral. |
 | Trading start | Curves and fills execute only once market execution is open. | Entries are blocked until `tradingStartTime`. |
 | Time weighting | CLOB price comes from maker curves. | Epoch multiplier is based on elapsed time since `tradingStartTime`. |
 | Settlement | CTF payout vector determines redemption. | Finalized pool snapshot determines claims. |

@@ -4,9 +4,9 @@ slug: tokens/position-tokens
 label: Position tokens
 eyebrow: Tokens
 title: Position tokens
-description: CTF positions, combo positions, parimutuel shares, approvals, metadata, and wallet expectations.
+description: CTF positions, native binary and combo positions, parlay tickets, parimutuel shares, approvals, metadata, and wallet expectations.
 status: Tokens
-updated: 2026-05-23
+updated: 2026-07-08
 order: 400
 ---
 
@@ -15,21 +15,24 @@ order: 400
 | Market type | Token system | Position meaning |
 | --- | --- | --- |
 | Orderbook | Gnosis ConditionalTokens ERC1155 | Complementary YES and NO claims over collateral. |
-| Combo | Nested Gnosis ConditionalTokens ERC1155 | Scenario claim across multiple market conditions. |
+| Multi-outcome orderbook | ConditionalTokens ERC1155 outcome set | One claim per outcome over collateral. |
+| Native binary | `EvesPositionManager` ERC1155 | Native YES and NO claims, no external CTF dependency. |
+| Combo | `EvesPositionManager` ERC1155 | Decomposable scenario claim across multiple conditions. |
+| Parlay | `ParlayTicketToken` ERC1155 | Single-unit ticket settling against a leg set with payout tiers. |
 | Parimutuel | `ParimutuelShareToken` ERC1155 | Weighted pool share claim, not mergeable CTF complement. |
 
 ## Approvals and custody
 
 Users hold ERC1155 balances directly until they transfer or approve them. Ask-side maker curves escrow base inventory into protocol custody. Bid-side curves escrow quote collateral and later receive base inventory from sellers.
 
-Apps should use standard ERC1155 operator approvals for CTF and parimutuel share movement.
+Apps should use standard ERC1155 operator approvals for CTF, native position, parlay ticket, and parimutuel share movement. The position systems are distinct contracts, so an approval for ConditionalTokens does not cover EvesPositionManager or ParlayTicketToken.
 
 ## Metadata
 
-The diamond exposes market and position metadata through read functions such as `getMarketMetadata`, `getMarketTokenInfo`, `getPositionMetadata`, and `positionTokenURI`.
+The diamond exposes market and position metadata through read functions such as `getMarketMetadata`, `getMarketTokenInfo`, `getPositionMetadata`, and `positionTokenURI`. Parlay ticket metadata is available through `parlayTicketURI` on the parlay view facet, and resolver identity metadata lives on `EveIdentity`.
 
 Raw Gnosis CTF wallets may not automatically discover the diamond's custom `positionTokenURI` surface. Treat protocol metadata as an app and indexer integration surface, not guaranteed wallet rendering for every ERC1155 viewer.
 
 ## Settlement differences
 
-CTF positions can merge before resolution when complements are present and redeem after final payout reporting. Parimutuel shares do not merge into collateral and instead claim against the finalized payout pool snapshot.
+CTF positions can merge before resolution when complements are present and redeem after final payout reporting. Native binary and combo positions support the same split, merge, compress, and redeem lifecycle through their own facets. Parlay tickets do not decompose into legs; they settle as one unit when the bucket is finalized. Parimutuel shares do not merge into collateral and instead claim against the finalized payout pool snapshot.

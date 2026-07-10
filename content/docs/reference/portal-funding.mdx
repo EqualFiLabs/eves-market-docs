@@ -1,0 +1,42 @@
+---
+id: portal-funding
+slug: reference/portal-funding
+label: Portal funding
+eyebrow: Reference
+title: Portal funding
+description: The wallet-facing swap, bridge, and wrap surface used for funding Eves Market balances across supported networks.
+status: Reference
+updated: 2026-06-04
+order: 545
+---
+
+## Surface
+
+The portal is the shared wallet funding surface for swaps, bridges, and wrap routes. It is available as a page and can also be opened from wallet flows as a modal.
+
+| Mode | Purpose |
+| --- | --- |
+| Swap | EVM swaps through Uniswap routes and Solana swaps through Jupiter routes. |
+| Bridge | Cross-chain USDC routes through Across where supported, including HyperCore funding paths. |
+| Wrap | Local asset conversion such as USDC to eveUSDC, eveUSDC to USDC, and ETH to WETH. |
+
+The product term remains Wrap because the same surface includes wrapping and unwrapping eveUSDC and ETH-family assets. There is no longer an eveETH asset or WETH-to-eveETH pair.
+
+## Network behavior
+
+The swap surface uses a network selector. EVM networks use the connected EVM wallet and EVM swap routes. Solana Mainnet uses the Solana wallet and Jupiter routes.
+
+When Solana is involved in a bridge route, the UI may need a Solana address input or an EVM recipient input near the submit action. Address fields are route requirements, not separate market modes.
+
+## HyperCore funding
+
+HyperCore funding is exposed as a bridge target where supported. Across routes can bridge USDC from supported source networks toward HyperCore USDC-SPOT paths. Integrations should show the exact output token, output amount, recipient, and route status returned by the bridge quote rather than doing local decimal assumptions.
+
+## Integration notes
+
+- Quotes are route-specific and can expire.
+- Approvals are token, chain, spender, and amount specific.
+- Solana transaction signing uses the connected Solana wallet.
+- EVM transaction signing uses the connected EVM wallet.
+- Portal balances are wallet balances, not protocol balances.
+- Wrap routes are local conversions and should not be described as external bridge routes.

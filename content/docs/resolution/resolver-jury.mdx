@@ -1,0 +1,92 @@
+---
+id: resolver-jury
+slug: resolution/resolver-jury
+label: Resolver jury
+eyebrow: Resolution
+title: Resolver identity and jury
+description: Resolver identities, EVE stake, epoch rotation, committee commit-reveal voting, appeals, and jury finality.
+status: Resolution
+updated: 2026-07-08
+order: 205
+---
+
+## Purpose
+
+The resolver jury is the finality path for disputes that cannot settle through optimistic creator settlement and bonded counter-proposals. It replaces the legacy EVE holder vote fallback.
+
+Resolvers participate through soulbound identity records, role flags, EVE stake, epoch rotation, and reputation. Dispute finality does not depend on a protocol operator manually deciding the outcome.
+
+## Stake asset
+
+Resolver stake is denominated in the **EVE token** (`eveToken` in the market config), not the bond token. `depositResolverStake` pulls EVE from the staker and `withdrawResolverStake` returns it after cooldown. Display the EVE symbol and the configured seat stake, not the bond token.
+
+## Identity lifecycle
+
+Identity is a non-transferable, one-per-address token minted through the diamond. Roles are set with explicit flags, not a single batched role call.
+
+| Step | Function |
+| --- | --- |
+| Mint identity | `mintIdentity` |
+| Grant creator role | `setCreatorRole` |
+| Grant resolver role | `setResolverRole` |
+| Stake EVE | `depositResolverStake` |
+| Request exit | `requestResolverExit` |
+| Withdraw after cooldown | `withdrawResolverStake` |
+
+There is no standalone `activateResolver`. A resolver becomes active by opting into a resolver epoch and being selected into it through epoch rotation.
+
+## Epoch rotation
+
+Resolver membership rotates by epoch so the active jury pool refreshes over time. The rotation is a commit-reveal randomness flow run by the registry, not a single activation call.
+
+| Step | Function |
+| --- | --- |
+| Open rotation | `openResolverEpochRotation` (owner-gated for epoch 1) |
+| Opt in | `optIntoResolverEpoch` |
+| Commit randomness | `commitResolverEpochRandomness` |
+| Close commit | `closeResolverEpochRandomnessCommit` |
+| Reveal randomness | `revealResolverEpochRandomness` |
+| Finalize seed | `finalizeResolverEpochSeed` |
+| Submit candidate score | `submitResolverEpochCandidateScore` |
+| Finalize selection | `finalizeResolverEpochSelection` |
+| Activate finalized epoch | `activateFinalizedResolverEpoch` |
+
+When `currentResolverEpoch` is zero, the bootstrap path is owner-gated and fee and stake distributions route to the treasury until an epoch is active.
+
+## Dispute lifecycle
+
+| Phase | Function |
+| --- | --- |
+| Start jury dispute | `initiateDispute` |
+| Randomness commit | `openRandomnessCommit`, `commitRandomness`, `closeRandomnessCommit` |
+| Randomness reveal | `revealRandomness`, `closeRandomnessReveal` |
+| Committee selection | `selectCommittee` |
+| Vote commit | `commitVote`, `closeCommit` |
+| Vote reveal and tally | `revealVote`, `closeRevealAndTally` |
+| Appeal | `openAppeal` |
+| Finality | `finalizeDispute` |
+
+Juror rewards are split as fixed seats: every identity that validly revealed in a round shares the round's reward pool equally, rather than rewards being proportional to stake. Slashing applies for missed commits, missed reveals, and invalid reveals according to the configured economics.
+
+## Read model
+
+The registry is split across four facets: state-changing selectors, view selectors, rewards, and reputation. All of these resolve against the diamond address.
+
+| Read | Purpose |
+| --- | --- |
+| `resolverDashboard` | Aggregate resolver state overview. |
+| `resolverJuryConfig` | Current identity, pool, round, and economics settings. |
+| `resolverLifecycleState` | Where a resolver sits in epoch rotation. |
+| `activeResolverCount`, `activeResolverAt` | The active epoch membership. |
+| `currentResolverEpoch`, `resolverEpoch` | Epoch and candidate state. |
+| `previewResolverRewards` | Accrued resolver reward preview. |
+| `disputeView`, `committeeMembers`, `outcomeTally`, `revealedVote`, `provisionalResult` | Per-dispute jury state. |
+| `resolverReputation`, `creatorReputation` | Participation and agreement history. |
+
+## Deploy defaults
+
+Resolver jury economics are hardcoded at deploy, not env-driven. The seat stake is 100 EVE, the active epoch size is 16, committee sizes are 3 then 5, with one appeal round. All round phase windows are one hour, quorum is two, and randomness timeout is five minutes. Missed-commit, missed-reveal, and invalid-reveal slashes are 10, 20, and 30 percent respectively, with a one-day slash cooldown.
+
+## UX requirements
+
+Apps should show jury dispute as a separate resolution stage, not as voting. Useful UI states include randomness collection, committee selection, commit window, reveal window, appeal window, and finalized. Resolvers need clear prompts for commit and reveal phases; a missed reveal can affect reputation or stake, so resolver UX should surface deadlines prominently.
