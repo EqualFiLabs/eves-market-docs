@@ -23,7 +23,7 @@ Every trading surface splits its fee take across several legs. The senior pool, 
 | Resolvers | resolver fee leg | accrued per epoch, claimed later |
 | EtRisk stakers | etRisk fee leg | `notifyReward`, falls back to treasury if unset |
 
-Exact default basis-point values per surface are documented on the settlement and fees page.
+Exact default basis-point values per surface are documented on the [settlement and fees](/docs/resolution/settlement-and-fees) page.
 
 ## SeniorCapitalPool
 
@@ -62,7 +62,7 @@ This means protocol revenue is always distributed in the same transaction that p
 
 ## Insurance reserve
 
-Separately from fee routing, each EtUSD pool profile holds an insurance reserve in raw collateral. The reserve is the first loss-absorber when a senior tranche is impaired at recovery finalization: insurance is drawn before any loss is socialized across the senior pool or stakers. See the EtUSD pairing pool page for the reserve views and top-up flow.
+Separately from fee routing, each EtUSD pool profile holds an insurance reserve in raw collateral. The reserve is the first loss-absorber when a senior tranche is impaired at recovery finalization: insurance is drawn before any loss is socialized across the senior pool or stakers. See the [EtUSD pairing pool page](/docs/collateral/etusd-pool) for the reserve views and top-up flow.
 
 ## Deployment wiring
 

@@ -44,11 +44,11 @@ The protocol also supports explicit collateral profiles. A profile can point a m
 
 ## Capital layer
 
-The base collateral is eveUSDC, an 18 decimal USDC wrapper that is also the default resolution bond token. An optional WETH-collateralized pairing pool mints a senior etUSD tranche paired 1:1 with risk shares, and protocol revenue routes to a senior capital pool and to active risk-share stakers. See the collateral section for both.
+The base collateral is [eveUSDC](/docs/collateral/eveusdc), an 18 decimal USDC wrapper that is also the default resolution bond token. An optional WETH-collateralized [pairing pool](/docs/collateral/etusd-pool) mints a senior etUSD tranche paired 1:1 with risk shares, and protocol revenue routes to a [senior capital pool](/docs/collateral/capital-and-fees) and to active risk-share stakers.
 
 ## Choose your path
 
-- Traders should start with orderbook markets, parimutuel markets, eveUSDC collateral, portal funding, and settlement.
-- Market makers should read Curve CLOB, combinatorial positions, spot books, delayed orders, and fee configuration.
-- Creators should read market creation, market groups, collateral profiles, scheduled markets, parimutuel epoch windows, and optimistic resolution.
-- Builders and indexers should read the builder reference, indexing guide, deployment page, and token model.
+- Traders should start with [orderbook markets](/docs/markets/orderbook-markets), [parimutuel markets](/docs/markets/parimutuel), [eveUSDC collateral](/docs/collateral/eveusdc), [portal funding](/docs/reference/portal-funding), and [settlement](/docs/resolution/settlement-and-fees).
+- Market makers should read [Curve CLOB](/docs/markets/curve-clob), [combinatorial positions](/docs/markets/combinatorial-positions), [spot books](/docs/markets/spot-books), delayed orders, and [fee configuration](/docs/resolution/settlement-and-fees).
+- Creators should read [market creation](/docs/markets/creation), market groups, [collateral profiles](/docs/collateral/collateral-profiles), scheduled markets, parimutuel epoch windows, and [optimistic resolution](/docs/resolution/optimistic-resolution).
+- Builders and indexers should read the [builder reference](/docs/reference/builder-reference), [indexing guide](/docs/reference/indexing), [deployment page](/docs/reference/base-sepolia-deployment), and [token model](/docs/tokens/position-tokens).

@@ -1,12 +1,11 @@
-import Image from "next/image";
 import Link from "next/link";
 
 import { MdxContent } from "@/components/mdx-content";
 import { MobileDocsMenu } from "@/components/mobile-docs-menu";
+import { SiteHeader } from "@/components/site-header";
 import { TestnetBanner } from "@/components/testnet-banner";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { Toc } from "@/components/toc";
 import { type DocPage as DocPageType, getAllPages, getNavigationGroups, getPageHref } from "@/lib/docs";
-import { APP_URL } from "@/lib/site";
 
 export function DocsPage({ page }: { page: DocPageType }) {
   const allPages = getAllPages();
@@ -15,6 +14,8 @@ export function DocsPage({ page }: { page: DocPageType }) {
   const previousPage = pageIndex > 0 ? allPages[pageIndex - 1] : null;
   const nextPage = pageIndex >= 0 && pageIndex < allPages.length - 1 ? allPages[pageIndex + 1] : null;
   const crumbSegments = page.slug.slice(0, -1);
+  const groupTitleFor = (pageId: string) =>
+    navigationGroups.find((group) => group.pages.some((entry) => entry.id === pageId))?.title;
 
   // Slim the props crossing into the client component: passing full DocPage
   // objects serializes every page's content into each page's RSC payload.
@@ -38,28 +39,11 @@ export function DocsPage({ page }: { page: DocPageType }) {
       </a>
       <TestnetBanner />
 
-      <header className="topbar">
-        <div className="topbar-inner">
+      <SiteHeader
+        leading={
           <MobileDocsMenu activePageId={page.id} navigationGroups={mobileNavigationGroups} sections={mobileSections} />
-
-          <Link className="brand" href="/docs/introduction">
-            <Image src="/eve-logo.png" alt="" width={26} height={26} className="brand-mark" priority />
-            <span className="brand-name">
-              eves.market <span>/ docs</span>
-            </span>
-          </Link>
-
-          <nav className="top-links" aria-label="Site">
-            <Link href="/docs/introduction">Protocol</Link>
-            <Link href="/docs/reference/builder-reference">Builders</Link>
-            <Link href="/docs/reference/base-sepolia-deployment">Addresses</Link>
-          </nav>
-          <ThemeToggle />
-          <a className="cta" href={APP_URL} target="_blank" rel="noreferrer">
-            Launch app ↗
-          </a>
-        </div>
-      </header>
+        }
+      />
 
       <div className="shell">
         <nav className="sidebar" aria-label="Docs">
@@ -112,7 +96,7 @@ export function DocsPage({ page }: { page: DocPageType }) {
           <div className="pager">
             {previousPage ? (
               <Link className="pager-card" href={getPageHref(previousPage)}>
-                <span className="pager-label">Previous</span>
+                <span className="pager-label">Previous · {groupTitleFor(previousPage.id)}</span>
                 <span className="pager-title">{previousPage.label}</span>
               </Link>
             ) : (
@@ -121,23 +105,14 @@ export function DocsPage({ page }: { page: DocPageType }) {
 
             {nextPage ? (
               <Link className="pager-card pager-card-next" href={getPageHref(nextPage)}>
-                <span className="pager-label">Next</span>
+                <span className="pager-label">Next · {groupTitleFor(nextPage.id)}</span>
                 <span className="pager-title">{nextPage.label}</span>
               </Link>
             ) : null}
           </div>
         </main>
 
-        <nav className="toc" aria-label="On this page">
-          <div className="toc-title">On this page</div>
-          <div className="toc-links">
-            {page.toc.map((entry) => (
-              <a href={`#${entry.id}`} className={entry.depth === 3 ? "toc-sub" : undefined} key={entry.id}>
-                {entry.title}
-              </a>
-            ))}
-          </div>
-        </nav>
+        <Toc entries={page.toc} />
       </div>
 
       <footer className="docs-footer">

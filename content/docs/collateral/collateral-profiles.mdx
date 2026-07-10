@@ -12,7 +12,7 @@ order: 310
 
 ## Profile model
 
-Collateral profiles let the protocol support markets that settle in an ERC20 other than the default collateral. The default collateral is eveUSDC. A profile-backed market stores its own collateral token, payout unit, and profile id, and every fee, payout, and redemption for that market is denominated in that profile's token.
+Collateral profiles let the protocol support markets that settle in an ERC20 other than the default collateral. The default collateral is [eveUSDC](/docs/collateral/eveusdc). A profile-backed market stores its own collateral token, payout unit, and profile id, and every fee, payout, and redemption for that market is denominated in that profile's token.
 
 | Setting | Meaning |
 | --- | --- |
@@ -26,7 +26,7 @@ Collateral profiles let the protocol support markets that settle in an ERC20 oth
 
 ## Registered profiles
 
-The default collateral, eveUSDC, backs the standard market surface. The only additional profile a standard deployment registers is etUSD as profile 1, and only when the optional EtUSD pairing pool is enabled.
+The default collateral, eveUSDC, backs the standard market surface. The only additional profile a standard deployment registers is etUSD as profile 1, and only when the optional [EtUSD pairing pool](/docs/collateral/etusd-pool) is enabled.
 
 Read a profile back with `getCollateralProfile(profileId)` on the market view facet rather than hard-coding an asset. The parimutuel and parlay settings for a profile are exposed separately through `getCollateralProfileParimutuelConfig` and `getCollateralProfileParlayUnderwritingFee`.
 

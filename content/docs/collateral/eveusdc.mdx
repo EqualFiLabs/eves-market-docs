@@ -14,7 +14,7 @@ order: 300
 
 eveUSDC is an 18 decimal ERC20 1:1 backed by native 6 decimal USDC. It is the protocol's base money: every default market settles in eveUSDC, and the bond token also defaults to eveUSDC when nothing else is configured.
 
-eveUSDC is not the same contract as etUSD. etUSD, The Ether Dollar, is the optional senior tranche of the WETH pairing pool. See the pairing pool page for that distinction.
+eveUSDC is not the same contract as etUSD. etUSD, The Ether Dollar, is the optional senior tranche of the WETH pairing pool. See the [pairing pool page](/docs/collateral/etusd-pool) for that distinction.
 
 ## Decimal model
 
@@ -55,7 +55,7 @@ These let the diamond's trade router mint or burn eveUSDC inline during a single
 
 For default orderbook markets, eveUSDC splits into equal YES and NO CTF positions. For default parimutuel markets, eveUSDC is paid into the pool and converted into weighted share tokens. Every fee leg, payout, and redemption for a default market is denominated in eveUSDC.
 
-Collateral profiles can register a different ERC20 as a market's collateral. The only profile a standard full-stack deployment registers is etUSD, backed by the optional Ether Dollar pairing pool.
+Collateral profiles can register a different ERC20 as a market's collateral. The only profile a standard full-stack deployment registers is etUSD, backed by the optional [Ether Dollar pairing pool](/docs/collateral/etusd-pool).
 
 ## eveUSDC as the bond token
 
