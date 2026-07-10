@@ -6,14 +6,14 @@ eyebrow: Reference
 title: Base Sepolia deployment
 description: Recorded public Base Sepolia alpha deployment snapshot, current source defaults, and integration notes.
 status: Reference
-updated: 2026-07-08
+updated: 2026-07-09
 order: 520
 ---
 
 ## Current status
 
-:::warning Recorded snapshot, pre-refactor
-The addresses below are from the last recorded public Base Sepolia deploy, which predates the collateral and fee refactor. Since then eveETH and the sEveUSD vault and lending stack were removed, the fee model gained seniorPool, resolver, and evRisk legs, the resolver registry was split into four facets, and MarketGroupFacet plus FeeConfigFacet were added. Treat the addresses as a historical snapshot and always read live state from the diamond before integrating. A fresh deploy now yields 52 facets and uses eveUSDC as the default collateral and bond token.
+:::warning Historical snapshot
+The addresses below are from the last recorded public Base Sepolia alpha deployment and predate the current fee model, facet layout, and collateral naming. Treat them as a historical snapshot and always read live state from the diamond before integrating. A fresh deployment yields 52 facets and uses eveUSDC as the default collateral and bond token.
 :::
 
 ## Network
@@ -36,32 +36,32 @@ The addresses below are from the last recorded public Base Sepolia deploy, which
 | ConditionalTokens | `0x210BF1c23FD323BeB1632393aC916B0BFA88C29e` |
 | Mock USDC | `0xb32D3Be8d0e139bE93038A3Fa418C9C218df2E10` |
 | Mock EVE | `0x66Ff7FA541d0E9b743007faB910F3D7dc38E42F9` |
-| EveUSD | `0x1B74fC221a7b2d96337a3f8E828e6fC9b5e789a9` |
+| EveUSD (superseded by EtUSD) | `0x1B74fC221a7b2d96337a3f8E828e6fC9b5e789a9` |
 | Faucet | `0x8E69928B5CAD7772D6267f24d5a1be3f1e2Caf25` |
 | ParimutuelShareToken | `0xA1EA0b24eB196790E2BC8Ac36E01FB1E1ef232D1` |
 
-The recorded snapshot also listed an sEveUSD vault, sEveUSD lending, and a maker lending router. Those contracts are removed from current source and should not be expected on a fresh deploy.
+Some contracts recorded in this snapshot no longer exist in current source and should not be expected on a fresh deployment.
 
 ## Current source fee defaults
 
-A fresh deploy uses the refactored fee model. Each surface has an independent take rate plus a basis-point split that sums to 10000. Values below are the deploy defaults; live values come from `getMarketConfig` and the per-surface fee config views.
+Each surface has an independent take rate plus a basis-point split that sums to 10000. Values below are the deployment defaults; live values come from `getMarketConfig` and the per-surface fee config views.
 
 | Surface | Take rate | Split legs (default bps) |
 | --- | --- | --- |
-| Orderbook | entry 100 | maker 4000, creator 500, protocol 1000, seniorPool 2500, resolver 500, evRisk 1500 |
-| Spot | trade 100 | maker 4000, protocol 1500, seniorPool 2500, resolver 500, evRisk 1500 |
-| Combo | trade 100 | maker 4000, creator 500, protocol 1000, seniorPool 2500, resolver 500, evRisk 1500 |
-| Parimutuel | entry 250 | creator 500, protocol 5000, seniorPool 2500, resolver 500, evRisk 1500 |
+| Orderbook | entry 100 | maker 4000, creator 500, protocol 1000, seniorPool 2500, resolver 500, etRisk 1500 |
+| Spot | trade 100 | maker 4000, protocol 1500, seniorPool 2500, resolver 500, etRisk 1500 |
+| Combo | trade 100 | maker 4000, creator 500, protocol 1000, seniorPool 2500, resolver 500, etRisk 1500 |
+| Parimutuel | entry 250 | creator 500, protocol 5000, seniorPool 2500, resolver 500, etRisk 1500 |
 | Parlay | underwriting 3 eveUSDC | seniorPool 0, feeRecipient 10000 |
 
 ## Current source deploy inventory
 
-A fresh full-stack deploy now includes eveUSDC as collateral and bond token, SeniorCapitalPool, EveIdentity, EvesPositionManager, ParlayTicketToken, and (when the eveUSD stack is enabled) EveUSD, EveRiskShares, EveUSDPool, EveUSDRouter, and EvRiskStakingRewards. Resolver jury economics are hardcoded at deploy: 100 EVE seat stake, active epoch size 16, committees of 3 then 5, one appeal round, one-hour phase windows, quorum 2.
+A full-stack deployment includes eveUSDC as collateral and bond token, SeniorCapitalPool, EveIdentity, EvesPositionManager, ParlayTicketToken, and (when the etUSD stack is enabled) EtUSD, EtRiskShares, EtUSDPool, EtUSDRouter, and EtRiskStakingRewards. Resolver jury economics are fixed at deployment: 100 EVE seat stake, active epoch size 16, committees of 3 then 5, one appeal round, one-hour phase windows, quorum 2.
 
 ## Integration notes
 
 Call market functions through the diamond. Treat standalone contracts as explicit token, faucet, senior pool, staking, or router integrations.
 
-eveUSDC is 18 decimals even though its backing USDC is 6 decimals. The legacy EVE vote fallback is removed; resolver jury escalation is the committee finality path, gated by `resolutionMode()`.
+eveUSDC is 18 decimals even though its backing USDC is 6 decimals. Resolver jury escalation is the committee finality path for disputes, gated by `resolutionMode()`.
 
 Market-side orderbook IDs are deterministic, but book records are materialized lazily. Indexers should ingest `MarketCreated`, store deterministic side book IDs, and enrich market, token, and book state through diamond read functions, treating an unmaterialized book as a normal pre-liquidity state.

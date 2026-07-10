@@ -6,7 +6,7 @@ eyebrow: Markets
 title: Parimutuel markets
 description: Pooled YES and NO markets with scheduled starts, entry fees, epoch multipliers, share tokens, and payout snapshots.
 status: Markets
-updated: 2026-07-08
+updated: 2026-07-09
 order: 150
 ---
 
@@ -18,10 +18,10 @@ Winners claim pro-rata against the finalized pool snapshot. INVALID resolution m
 
 ## Scheduled entry
 
-The canonical creation entry point takes a typed `ParimutuelMarketConfig` struct plus an optional `CollateralProfile`, carrying display and external reference metadata like the orderbook path. Shares are not purchasable before `tradingStartTime`.
+The canonical creation entry point takes a typed `CreateParimutuelMarketParams` struct, carrying display and external reference metadata like the orderbook path. Shares are not purchasable before `tradingStartTime`.
 
 ```solidity createParimutuelMarket
-createParimutuelMarket(ParimutuelMarketConfig config, CollateralProfile profile)
+createParimutuelMarket(CreateParimutuelMarketParams params)
 // legacy positional overload also exists for backwards compatibility
 ```
 
@@ -35,20 +35,20 @@ This means a 30-day market can use a one-day epoch window if the protocol cap al
 
 ## Entry flow
 
-The entry amount must be at least the configured minimum for the market collateral. The protocol deducts the parimutuel entry fee, routes the creator, protocol, seniorPool, resolver, and evRisk fee shares, adds net collateral to the payout pool, and mints weighted ERC1155 shares.
+The entry amount must be at least the configured minimum for the market collateral. The protocol deducts the parimutuel entry fee, routes the creator, protocol, seniorPool, resolver, and etRisk fee shares, adds net collateral to the payout pool, and mints weighted ERC1155 shares.
 
-:::note No vault leg
-The parimutuel fee split is five-way: creator, protocol, seniorPool, resolver, and evRisk. There is no vault component. The seniorPool leg lands in SeniorCapitalPool and the evRisk leg in EvRiskStakingRewards, each with a treasury fallback.
+:::note Fee legs
+The parimutuel fee split is five-way: creator, protocol, seniorPool, resolver, and etRisk. The seniorPool leg lands in SeniorCapitalPool and the etRisk leg in EtRiskStakingRewards, each with a treasury fallback.
 :::
 
-`previewParimutuelEntry` returns the fee breakdown including the evRisk fee, net collateral, shares minted, active epoch, multiplier, effective basis, and projected pool totals. It lives on the parimutuel view facet, separate from the write facet. Frontends should preview before submitting and enforce `minSharesOut`.
+`previewParimutuelEntry` returns the fee breakdown including the etRisk fee, net collateral, shares minted, active epoch, multiplier, effective basis, and projected pool totals. It lives on the parimutuel view facet, separate from the write facet. Frontends should preview before submitting and enforce `minSharesOut`.
 
 ## Read surface
 
-Parimutuel reads were extracted into `ParimutuelViewFacet` to keep the write facet under the contract size limit. Preview, payout, pool balances, epoch window, and multiplier reads all resolve there, while create, buy, claim, and dust sweep stay on `ParimutuelFacet`.
+Parimutuel reads live on `ParimutuelViewFacet`, separate from the write facet. Preview, payout, pool balances, epoch window, and multiplier reads all resolve there, while create, buy, claim, and dust sweep stay on `ParimutuelFacet`.
 
 ## Secondary market
 
-Parimutuel share tokens are ERC1155 balances and can be moved with standard approvals. A secondary CLOB path can exist when makers post inventory, but docs should not imply automatic liquidity or immediate book materialization.
+Parimutuel share tokens are ERC1155 balances and can be moved with standard approvals. A secondary CLOB path can exist when makers post inventory, but applications should not assume automatic liquidity or immediate book materialization.
 
-The main combo product focus is CTF orderbook markets. Parimutuel scheduling is included; parimutuel combinatorics are not part of this combo feature.
+Parimutuel shares do not participate in combinatorial positions. Combo markets build on CTF and native positions, not pooled parimutuel shares.

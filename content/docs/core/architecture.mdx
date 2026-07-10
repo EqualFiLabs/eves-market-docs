@@ -6,7 +6,7 @@ eyebrow: Core
 title: Protocol architecture
 description: How the diamond, standalone tokens, capital layer, routers, CTF and native position systems, and product surfaces fit together.
 status: Core
-updated: 2026-07-08
+updated: 2026-07-09
 order: 20
 ---
 
@@ -20,7 +20,7 @@ The market protocol is exposed through a diamond. Facets share canonical market,
 | CLOB | Curve and book facets, `TradeRouterFacet`, `TradeRouterSellFacet`, `DelayedOrderFacet` | Post curves, fill liquidity, split or merge inventory, route buys and sells from USDC or eveUSDC, and protect fills with delayed orders. |
 | Margin and MLO | `MarginAccountFacet`, `MarkOracleFacet`, `QuoteEnvelopeFacet`, MLO prediction facets | Margin accounts, risk buckets, mark oracles, and margin-linked-order liquidity. |
 | Resolution | OBR, resolver registry, resolver jury, and settlement facets | Resolve markets, run disputed committee finality, report payouts, finalize pools, and redeem or claim. |
-| Collateral | `EveUSDC`, `EveUSDPool`, `SeniorCapitalPool`, `EvRiskStakingRewards` | Wrap USDC, hold protocol collateral, mint paired tranches, and distribute revenue to the senior pool and active stakers. |
+| Collateral | `EveUSDC`, `EtUSDPool`, `SeniorCapitalPool`, `EtRiskStakingRewards` | Wrap USDC, hold protocol collateral, mint paired tranches, and distribute revenue to the senior pool and active stakers. |
 | Tokens | Gnosis CTF, `ParimutuelShareToken`, `EvesPositionManager`, `ParlayTicketToken`, `EveIdentity` | Represent outcome positions, pooled shares, native positions, parlay tickets, and resolver identities. |
 
 ## Diamond model
@@ -30,12 +30,12 @@ Applications should call the diamond address for market functions. Individual fa
 The diamond owns protocol configuration such as default ConditionalTokens, default collateral token, collateral profiles, bond token, fee recipients, market duration bounds, fee splits, parimutuel settings, resolver jury settings, the senior capital pool, and creation permissions. These values are live governance or operator settings, so integrations should read `getMarketConfig`, `getCollateralProfile`, and market views instead of hardcoding assumptions.
 
 :::note Integration boundary
-The diamond is the integration boundary. Use standalone contract addresses only for tokens, the senior pool, staking rewards, the eveUSD pairing pool, and auxiliary routers that are explicitly deployed outside the diamond.
+The diamond is the integration boundary. Use standalone contract addresses only for tokens, the senior pool, staking rewards, the etUSD pairing pool, and auxiliary routers that are explicitly deployed outside the diamond.
 :::
 
 ## Conditional tokens and native positions
 
-Orderbook markets use Gnosis ConditionalTokens ERC1155 positions. The deploy path deploys a standard Gnosis ConditionalTokens implementation from a loaded artifact when no address is provided, or wires an existing compatible CTF address into the diamond.
+Orderbook markets use Gnosis ConditionalTokens ERC1155 positions. A deployment either wires an existing compatible ConditionalTokens address into the diamond or includes a standard Gnosis ConditionalTokens instance of its own.
 
 Native binary and combo positions use an Eves-native ERC1155 position manager rather than Gnosis CTF, so the protocol has two position systems: CTF for the orderbook CTF surface, and native for binary, combo, and parlay scenario positions.
 
@@ -44,14 +44,16 @@ Native binary and combo positions use an Eves-native ERC1155 position manager ra
 | Contract | Role |
 | --- | --- |
 | `EveUSDC` | 18 decimal USDC wrapper; default collateral and bond token. |
-| `EveUSD` | Senior tranche minted by the optional WETH pairing pool. |
-| `EveRiskShares` | ERC1155 junior tranche paired 1:1 with eveUSD. |
-| `EveUSDPool` | Pairing pool orchestrator with insurance and recovery. |
-| `EveUSDRouter` | ETH and WETH deposit and recombine helper for the pool. |
+| `EtUSD` | The Ether Dollar; senior tranche minted by the optional WETH pairing pool. |
+| `EtRiskShares` | ERC1155 junior tranche paired 1:1 with etUSD. |
+| `EtUSDPool` | Pairing pool orchestrator with insurance and recovery. |
+| `EtUSDRouter` | ETH and WETH deposit and recombine helper for the pool. |
 | `SeniorCapitalPool` | ERC4626-style senior vault whose asset is eveUSDC; seniorPool fee recipient. |
-| `EvRiskStakingRewards` | Stakes risk shares and distributes the evRisk fee leg to active stakers. |
+| `EtRiskStakingRewards` | Stakes risk shares and distributes the etRisk fee leg to active stakers. |
 | `EveIdentity` | Soulbound resolver and creator identity NFT. |
 | `ParimutuelShareToken` | ERC1155 share token minted and burned by the diamond for parimutuel markets. |
 | `EvesPositionManager` | ERC1155 ledger for native binary and combo positions. |
 | `ParlayTicketToken` | ERC1155 parlay ticket token. |
 | `Faucet` | Testnet faucet dispensing USDC and EVE. |
+
+The EtUSD stack — `EtUSD`, `EtRiskShares`, `EtUSDPool`, `EtUSDRouter`, and `EtRiskStakingRewards` — is the Ether Dollar system, a standalone codebase that Eves Market consumes as an external dependency.

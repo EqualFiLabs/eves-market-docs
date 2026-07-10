@@ -1,36 +1,26 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import GithubSlugger from "github-slugger";
+import matter from "gray-matter";
+
+export type TocEntry = {
+  id: string;
+  title: string;
+  depth: 2 | 3;
+};
+
 export type DocPage = {
   id: string;
   slug: string[];
   label: string;
-  eyebrow: string;
   title: string;
   description: string;
-  status: string;
   updated: string;
   order: number;
   badge?: string;
-  sections: DocSection[];
-};
-
-export type DocSection = {
-  id: string;
-  title: string;
-  blocks: DocBlock[];
-};
-
-export type DocBlock =
-  | { type: "paragraph"; text: string }
-  | { type: "list"; items: string[] }
-  | { type: "table"; columns: string[]; rows: string[][] }
-  | { type: "code"; language: string; label: string; content: string }
-  | { type: "callout"; tone: "note" | "success" | "warning"; title: string; body: string };
-
-type Frontmatter = Omit<DocPage, "slug" | "order" | "sections"> & {
-  slug: string;
-  order: string;
+  body: string;
+  toc: TocEntry[];
 };
 
 const docsDirectory = path.join(process.cwd(), "content", "docs");
@@ -52,229 +42,95 @@ function findMdxFiles(directory: string): string[] {
     .sort();
 }
 
-function parseFrontmatter(raw: string): { frontmatter: Frontmatter; body: string } {
-  if (!raw.startsWith("---\n")) {
-    throw new Error("Docs pages must start with frontmatter.");
-  }
-
-  const end = raw.indexOf("\n---", 4);
-  if (end === -1) {
-    throw new Error("Docs page frontmatter is missing a closing delimiter.");
-  }
-
-  const frontmatterLines = raw.slice(4, end).trim().split("\n");
-  const entries = frontmatterLines.map((line) => {
-    const separator = line.indexOf(":");
-    if (separator === -1) {
-      throw new Error(`Invalid frontmatter line: ${line}`);
-    }
-    const key = line.slice(0, separator).trim();
-    const value = line.slice(separator + 1).trim().replace(/^"|"$/g, "");
-    return [key, value];
-  });
-
-  return {
-    frontmatter: Object.fromEntries(entries) as Frontmatter,
-    body: raw.slice(end + 4).trim(),
+/**
+ * Rewrites the two content conventions that predate the MDX pipeline into
+ * standard MDX, so the .mdx files themselves stay untouched:
+ *   - `:::tone Title` … `:::` callouts become <Callout> elements
+ *   - ```lang Label fences become ```lang title="Label" for rehype-pretty-code
+ */
+export function preprocessMdx(source: string): string {
+  const defaultTitles: Record<string, string> = {
+    note: "Note",
+    success: "Note",
+    warning: "Note",
   };
-}
 
-function slugify(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/`/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function parseTable(lines: string[], startIndex: number): { block: DocBlock; nextIndex: number } {
-  const tableLines: string[] = [];
-  let index = startIndex;
-  while (index < lines.length && lines[index].trim().startsWith("|")) {
-    tableLines.push(lines[index].trim());
-    index += 1;
-  }
-
-  const rows = tableLines
-    .filter((line, rowIndex) => rowIndex !== 1)
-    .map((line) =>
-      line
-        .replace(/^\||\|$/g, "")
-        .split("|")
-        .map((cell) => cell.trim()),
-    );
-
-  return {
-    block: {
-      type: "table",
-      columns: rows[0] ?? [],
-      rows: rows.slice(1),
+  let output = source.replace(
+    /^:::(note|success|warning)[ \t]*([^\n]*)\n([\s\S]*?)\n:::[ \t]*$/gm,
+    (_match, tone: string, title: string, body: string) => {
+      const heading = title.trim() || defaultTitles[tone];
+      return `<Callout tone="${tone}" title="${heading}">\n\n${body}\n\n</Callout>`;
     },
-    nextIndex: index,
-  };
+  );
+
+  output = output.replace(/^```(\w+)[ \t]+([^\n{"]+?)[ \t]*$/gm, '```$1 title="$2"');
+  output = output.replace(/^```(\w+)[ \t]*$/gm, '```$1 title="Example"');
+
+  return output;
 }
 
-function parseCode(lines: string[], startIndex: number): { block: DocBlock; nextIndex: number } {
-  const opening = lines[startIndex].trim();
-  const meta = opening.replace(/^```/, "").trim();
-  const [language = "text", ...labelParts] = meta.split(/\s+/);
-  const codeLines: string[] = [];
-  let index = startIndex + 1;
-  while (index < lines.length && !lines[index].startsWith("```")) {
-    codeLines.push(lines[index]);
-    index += 1;
-  }
+export function extractToc(source: string): TocEntry[] {
+  const slugger = new GithubSlugger();
+  const entries: TocEntry[] = [];
+  let inFence = false;
 
-  return {
-    block: {
-      type: "code",
-      language,
-      label: labelParts.join(" ") || "Example",
-      content: codeLines.join("\n"),
-    },
-    nextIndex: index + 1,
-  };
-}
-
-function parseCallout(lines: string[], startIndex: number): { block: DocBlock; nextIndex: number } {
-  const opening = lines[startIndex].trim();
-  const [, tone = "note", ...titleParts] = opening.split(/\s+/);
-  const bodyLines: string[] = [];
-  let index = startIndex + 1;
-  while (index < lines.length && lines[index].trim() !== ":::") {
-    bodyLines.push(lines[index]);
-    index += 1;
-  }
-
-  return {
-    block: {
-      type: "callout",
-      tone: tone === "success" || tone === "warning" ? tone : "note",
-      title: titleParts.join(" ") || "Note",
-      body: bodyLines.join(" ").trim(),
-    },
-    nextIndex: index + 1,
-  };
-}
-
-function parseBlocks(lines: string[]) {
-  const blocks: DocBlock[] = [];
-  let index = 0;
-
-  while (index < lines.length) {
-    const line = lines[index].trim();
-
-    if (!line) {
-      index += 1;
+  for (const line of source.split("\n")) {
+    if (line.trimStart().startsWith("```")) {
+      inFence = !inFence;
       continue;
     }
-
-    if (line.startsWith("```")) {
-      const parsed = parseCode(lines, index);
-      blocks.push(parsed.block);
-      index = parsed.nextIndex;
+    if (inFence) {
       continue;
     }
-
-    if (line.startsWith(":::")) {
-      const parsed = parseCallout(lines, index);
-      blocks.push(parsed.block);
-      index = parsed.nextIndex;
-      continue;
-    }
-
-    if (line.startsWith("|")) {
-      const parsed = parseTable(lines, index);
-      blocks.push(parsed.block);
-      index = parsed.nextIndex;
-      continue;
-    }
-
-    if (line.startsWith("- ")) {
-      const items: string[] = [];
-      while (index < lines.length && lines[index].trim().startsWith("- ")) {
-        items.push(lines[index].trim().slice(2));
-        index += 1;
-      }
-      blocks.push({ type: "list", items });
-      continue;
-    }
-
-    const paragraphLines = [line];
-    index += 1;
-    while (
-      index < lines.length &&
-      lines[index].trim() &&
-      !lines[index].trim().startsWith("## ") &&
-      !lines[index].trim().startsWith("- ") &&
-      !lines[index].trim().startsWith("|") &&
-      !lines[index].trim().startsWith("```") &&
-      !lines[index].trim().startsWith(":::")
-    ) {
-      paragraphLines.push(lines[index].trim());
-      index += 1;
-    }
-    blocks.push({ type: "paragraph", text: paragraphLines.join(" ") });
-  }
-
-  return blocks;
-}
-
-function parseSections(body: string): DocSection[] {
-  const lines = body.split("\n");
-  const sections: DocSection[] = [];
-  let currentTitle = "Overview";
-  let currentLines: string[] = [];
-
-  function pushSection() {
-    const blocks = parseBlocks(currentLines);
-    if (blocks.length > 0 || sections.length === 0) {
-      sections.push({
-        id: slugify(currentTitle),
-        title: currentTitle,
-        blocks,
+    const match = line.match(/^(#{2,3}) (.+)$/);
+    if (match) {
+      const title = match[2].trim();
+      entries.push({
+        id: slugger.slug(title),
+        title,
+        depth: match[1].length as 2 | 3,
       });
     }
   }
 
-  for (const line of lines) {
-    if (line.startsWith("## ")) {
-      pushSection();
-      currentTitle = line.slice(3).trim();
-      currentLines = [];
-      continue;
-    }
-    currentLines.push(line);
-  }
-  pushSection();
-
-  return sections.filter((section) => section.blocks.length > 0);
+  return entries;
 }
 
-function loadPages() {
+function loadPages(): DocPage[] {
   return findMdxFiles(docsDirectory)
     .map((filePath) => {
       const raw = fs.readFileSync(filePath, "utf8");
-      const { frontmatter, body } = parseFrontmatter(raw);
+      const { data, content } = matter(raw);
+      // YAML parses unquoted dates like `updated: 2026-07-09` into Date objects.
+      const updated =
+        data.updated instanceof Date ? data.updated.toISOString().slice(0, 10) : String(data.updated);
       return {
-        id: frontmatter.id,
-        slug: frontmatter.slug.split("/").filter(Boolean),
-        label: frontmatter.label,
-        eyebrow: frontmatter.eyebrow,
-        title: frontmatter.title,
-        description: frontmatter.description,
-        status: frontmatter.status,
-        updated: frontmatter.updated,
-        order: Number(frontmatter.order),
-        badge: "badge" in frontmatter ? frontmatter.badge : undefined,
-        sections: parseSections(body),
+        id: String(data.id),
+        slug: String(data.slug).split("/").filter(Boolean),
+        label: String(data.label),
+        title: String(data.title),
+        description: String(data.description),
+        updated,
+        order: Number(data.order),
+        badge: data.badge ? String(data.badge) : undefined,
+        body: preprocessMdx(content),
+        toc: extractToc(content),
       };
     })
     .sort((left, right) => left.order - right.order);
 }
 
+let pagesCache: DocPage[] | null = null;
+
 export function getAllPages() {
-  return loadPages();
+  // Skip the cache in dev so content edits show up without a server restart.
+  if (process.env.NODE_ENV !== "production") {
+    return loadPages();
+  }
+  if (!pagesCache) {
+    pagesCache = loadPages();
+  }
+  return pagesCache;
 }
 
 export function getStaticDocSlugs() {

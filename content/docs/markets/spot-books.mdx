@@ -6,7 +6,7 @@ eyebrow: Markets
 title: Standalone ERC20 spot books
 description: ERC20 standalone books for the onchain spot trading surface, separated from prediction combo markets.
 status: Markets
-updated: 2026-07-08
+updated: 2026-07-09
 order: 140
 ---
 
@@ -33,9 +33,9 @@ A standalone spot book is created with `createBook` and can later be retired thr
 
 ## Fees
 
-Spot uses a spot trade fee, not a spot entry fee. The spot fee split is five-way: maker, protocol, seniorPool, resolver, and evRisk. There is no spot creator fee and no vault leg in the current protocol.
+Spot fills are charged the spot trade fee. The split is five-way: maker, protocol, seniorPool, resolver, and etRisk. There is no spot creator fee.
 
-Spot book creation can also charge a separate creation fee routed to treasury. Use `SPOT_TRADE_FEE_BPS` in deploy guides and product docs; avoid the legacy entry-fee naming.
+Spot book creation can also charge a separate creation fee routed to treasury.
 
 ## Transfer modes
 

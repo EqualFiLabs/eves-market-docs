@@ -4,9 +4,9 @@ slug: resolution/settlement-and-fees
 label: Settlement and fees
 eyebrow: Resolution
 title: Settlement and fees
-description: Redemption paths and the per-surface fee configurations that fan out to makers, creators, treasury, senior pool, resolvers, and EvRisk stakers.
+description: Redemption paths and the per-surface fee configurations that fan out to makers, creators, treasury, senior pool, resolvers, and EtRisk stakers.
 status: Resolution
-updated: 2026-07-08
+updated: 2026-07-09
 order: 210
 ---
 
@@ -16,11 +16,11 @@ Settlement is market-type and collateral-profile aware. Orderbook CTF positions 
 
 Before resolution, matching CTF YES and NO balances can merge back into collateral. After resolution, holders follow the winning-side redemption path. Settlement preview helpers (`previewCTFRedemption`, `previewParimutuelPayout`, `previewRedemption`) live on the market settlement facet.
 
-For profile markets, redemption and fee accounting stay collateral-native. An eveUSDC market redeems eveUSDC; an eveUSD-profile market redeems eveUSD. Cross-collateral aggregation is an offchain display concern and should be labeled as estimated value if used.
+For profile markets, redemption and fee accounting stay collateral-native. An eveUSDC market redeems eveUSDC; an etUSD-profile market redeems etUSD. Cross-collateral aggregation is an offchain display concern and should be labeled as estimated value if used.
 
 ## Fee configurations
 
-Fees are separated by market surface. Each surface has an independent take rate plus a basis-point split that must sum to exactly 10000. The split no longer has a vault leg. Instead it fans out to the senior pool, resolvers, and EvRisk stakers, with a treasury fallback when a recipient is ineligible.
+Fees are separated by market surface. Each surface has an independent take rate plus a basis-point split that must sum to exactly 10000. The split fans out to makers, creators, the treasury, the senior pool, resolvers, and EtRisk stakers, with a treasury fallback when a recipient is ineligible.
 
 ### Orderbook
 
@@ -33,7 +33,7 @@ Take rate `orderbookEntryFeeBps`, default 100 bps. The split is six-way.
 | protocol | 1000 |
 | seniorPool | 2500 |
 | resolver | 500 |
-| evRisk | 1500 |
+| etRisk | 1500 |
 
 ### Spot
 
@@ -45,7 +45,7 @@ Take rate `spotTradeFeeBps`, default 100 bps. The split is five-way and has no c
 | protocol | 1500 |
 | seniorPool | 2500 |
 | resolver | 500 |
-| evRisk | 1500 |
+| etRisk | 1500 |
 
 ### Combo
 
@@ -58,7 +58,7 @@ Take rate `comboTradeFeeBps`, default 100 bps. The split is six-way, like orderb
 | protocol | 1000 |
 | seniorPool | 2500 |
 | resolver | 500 |
-| evRisk | 1500 |
+| etRisk | 1500 |
 
 ### Parimutuel
 
@@ -70,7 +70,7 @@ Take rate `parimutuelEntryFeeBps`, default 250 bps. The split is five-way.
 | protocol | 5000 |
 | seniorPool | 2500 |
 | resolver | 500 |
-| evRisk | 1500 |
+| etRisk | 1500 |
 
 ### Parlay
 
@@ -87,7 +87,7 @@ Each non-maker, non-creator leg has a specific destination, decided inline at fe
 | protocol | treasury | n/a |
 | seniorPool | `SeniorCapitalPool.notifyRevenue` | treasury, when token is not eveUSDC or supply is zero |
 | resolver | accrued per active epoch to compliant resolvers | treasury, when no epoch is active |
-| evRisk | `EvRiskStakingRewards.notifyReward` to active stakers | treasury, when staking is unset |
+| etRisk | `EtRiskStakingRewards.notifyReward` to active stakers | treasury, when staking is unset |
 
 Because every leg resolves in the same transaction, a fee event is final from an indexer's perspective and does not depend on a later claim.
 

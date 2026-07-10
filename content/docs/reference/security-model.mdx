@@ -6,7 +6,7 @@ eyebrow: Reference
 title: Security model
 description: Collateralization, admin powers, resolution safety, fee routing, CTF assumptions, and integration safety checks.
 status: Reference
-updated: 2026-07-08
+updated: 2026-07-09
 order: 550
 ---
 
@@ -18,7 +18,7 @@ There is no automatic liquidity guarantee. If no maker has posted collateralized
 
 ## Admin powers
 
-The current alpha is not governance-free. Operators can configure core addresses, collateral profiles, fee splits, duration bounds, permissionless creation, creation fees, parimutuel settings, resolution windows, bond token and bond amounts, resolver jury settings, the senior capital pool, the EvRisk staking rewards contract, and ConditionalTokens references.
+The current alpha is not governance-free. Operators can configure core addresses, collateral profiles, fee splits, duration bounds, permissionless creation, creation fees, parimutuel settings, resolution windows, bond token and bond amounts, resolver jury settings, the senior capital pool, the EtRisk staking rewards contract, and ConditionalTokens references.
 
 The most consequential admin lever is `resolutionMode`. Under `CreatorAdminBootstrap` the owner can `adminFinalizeResolution` any market and report an outcome unilaterally, so that mode carries a direct trust assumption. It is intended for early launch and should be migrated to `ObrJury` before production use, after which disputes escalate to the resolver jury and the admin finalize path is unavailable.
 
@@ -26,7 +26,7 @@ Integrators should surface this as an actively governed alpha protocol and expos
 
 ## Fee routing
 
-Fee splits fan out to several recipients at trade time. The seniorPool leg lands in SeniorCapitalPool, the resolver leg accrues to compliant resolvers per epoch, and the evRisk leg is pushed to EvRiskStakingRewards for active stakers. Each non-treasury leg has a treasury fallback when its recipient is ineligible, so no fee gets stranded, but a security review must trace every leg to its destination rather than assuming all revenue reaches the treasury.
+Fee splits fan out to several recipients at trade time. The seniorPool leg lands in SeniorCapitalPool, the resolver leg accrues to compliant resolvers per epoch, and the etRisk leg is pushed to EtRiskStakingRewards for active stakers. Each non-treasury leg has a treasury fallback when its recipient is ineligible, so no fee gets stranded, but a security review must trace every leg to its destination rather than assuming all revenue reaches the treasury.
 
 Identity mint and resolver epoch candidate fees route to the treasury. The bond token defaults to eveUSDC, so bond slashing and resolution bonds are ERC20 denominated, never native ETH or `msg.value`.
 

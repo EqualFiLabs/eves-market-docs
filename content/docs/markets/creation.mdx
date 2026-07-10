@@ -6,7 +6,7 @@ eyebrow: Markets
 title: Creating markets
 description: Required inputs, deterministic identity, market groups, scheduling, profiles, and creation economics.
 status: Markets
-updated: 2026-07-08
+updated: 2026-07-09
 order: 100
 ---
 
@@ -24,7 +24,7 @@ Market identity includes the question, category, `tradingStartTime`, `expiryTime
 
 ## Creation params
 
-The canonical creation entry points take a typed `MarketCreationParams` struct plus an optional `CollateralProfile`. Beyond the core fields, every creation call carries display metadata and an external reference, so a market is indexable and linkable to an upstream source from creation onward.
+The canonical creation entry point is `createMarket(MarketCreationParams)`. Beyond the core fields, the struct carries display metadata and an external reference, so a market is indexable and linkable to an upstream source from creation onward.
 
 ```solidity MarketCreationParams
 struct MarketCreationParams {
@@ -54,7 +54,7 @@ Related markets are best created together as a group. `MarketGroupFacet` creates
 
 ## Collateral profiles
 
-Default creation uses the protocol's configured collateral token, eveUSDC. Profile creation variants let a creator select an enabled collateral profile, such as eveUSD on the optional pairing pool, while preserving deterministic market identity.
+Default creation uses the protocol's configured collateral token, eveUSDC. Profile creation variants let a creator select an enabled collateral profile, such as etUSD on the optional pairing pool, while preserving deterministic market identity.
 
 | Surface | Profile creation function |
 | --- | --- |
@@ -83,4 +83,4 @@ Market-side CLOB books are assigned by ID at creation but are materialized lazil
 
 ## Creation economics
 
-Market creation can require a fee in the market collateral and a separate creation bond in the configured `bondToken`, which defaults to eveUSDC. The current ABI exposes `marketCreationBond` and `bondToken` through `getMarketConfig`; do not use legacy `marketCreationBondEve` naming.
+Market creation can require a fee in the market collateral and a separate creation bond in the configured `bondToken`, which defaults to eveUSDC. Both the bond amount and the bond token are exposed through `getMarketConfig` as `marketCreationBond` and `bondToken`.

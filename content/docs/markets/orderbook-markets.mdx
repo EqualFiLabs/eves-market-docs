@@ -6,7 +6,7 @@ eyebrow: Markets
 title: Orderbook prediction markets
 description: Binary CTF markets where market collateral becomes complementary YES and NO ERC1155 positions traded through curve books.
 status: Markets
-updated: 2026-07-08
+updated: 2026-07-09
 order: 110
 ---
 
@@ -31,7 +31,7 @@ The market creates deterministic side book IDs, not necessarily registered book 
 
 ## Splitting and merging inventory
 
-`splitInventory(marketId, collateralAmount)` consumes the market collateral and mints equal YES and NO balances. For default markets this is eveUSDC. For profile markets it is the profile's collateral, such as eveUSD.
+`splitInventory(marketId, collateralAmount)` consumes the market collateral and mints equal YES and NO balances. For default markets this is eveUSDC. For profile markets it is the profile's collateral, such as etUSD.
 
 `mergeInventory(marketId, shareAmount)` burns matching YES and NO balances and returns the market collateral before the market is resolved. Merging is only possible when the holder owns the complementary branch needed to go upward.
 

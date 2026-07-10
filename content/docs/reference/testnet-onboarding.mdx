@@ -4,15 +4,15 @@ slug: reference/testnet-onboarding
 label: Testnet onboarding
 eyebrow: Reference
 title: Testnet onboarding
-description: Faucet, wrapping, approvals, and smoke flows for users and builders on a local or testnet deployment.
+description: Faucet, wrapping, approvals, and suggested first flows for users and builders on a local or testnet deployment.
 status: Reference
-updated: 2026-07-08
+updated: 2026-07-09
 order: 540
 ---
 
 ## Test assets
 
-A full-stack test deploy includes mock USDC, mock EVE, eveUSDC, the optional eveUSD pairing pool when enabled, SeniorCapitalPool, a faucet, and the market diamond. The faucet is for testnet onboarding only and dispenses USDC and EVE.
+A full-stack test deploy includes mock USDC, mock EVE, eveUSDC, the optional etUSD pairing pool when enabled, SeniorCapitalPool, a faucet, and the market diamond. The faucet is for testnet onboarding only and dispenses USDC and EVE.
 
 Users usually need USDC, which they wrap into 18 decimal eveUSDC for default market collateral. Resolution and creator bonds use the configured `bondToken`, which defaults to eveUSDC, so onboarding flows should read `getMarketConfig` before telling a user which asset to fund. Resolvers additionally need EVE, because the resolver seat stake is denominated in EVE, not the bond token.
 
@@ -27,8 +27,6 @@ Users usually need USDC, which they wrap into 18 decimal eveUSDC for default mar
 - Create or enter a market.
 - Trade, resolve, and claim through the diamond.
 
-There is no longer an eveETH asset, eveETH market, or eveETH bond path. Do not instruct users to wrap WETH into eveETH.
-
 ## Single-transaction funding
 
 The trade router lets a user skip pre-wrapping. `buyWithUSDC` and `splitWithUSDC` wrap USDC into eveUSDC inline via the wrapper's privileged mint, so a funded USDC balance is enough to enter a market in one transaction. The matching `sellWithUSDC` path unwraps on the way out.
@@ -37,6 +35,6 @@ The trade router lets a user skip pre-wrapping. `buyWithUSDC` and `splitWithUSDC
 
 Frontends should format very large allowances as `Max` or a compact value. Raw `uint256.max` style numbers are not useful in create market modals.
 
-## Smoke paths
+## Suggested test flows
 
-Useful user-facing smoke tests include market creation, market group creation, collateral profile creation, scheduled start gating, orderbook split and merge, ask and bid curve fills, combo market creation and branch manipulation, parimutuel entry preview and buy, resolver epoch rotation and dispute, settlement, fee claims, faucet claim, wrapping, and unwrapping.
+Useful flows to exercise include market creation, market group creation, collateral profile creation, scheduled start gating, orderbook split and merge, ask and bid curve fills, combo market creation and branch manipulation, parimutuel entry preview and buy, resolver epoch rotation and dispute, settlement, fee claims, faucet claim, wrapping, and unwrapping.

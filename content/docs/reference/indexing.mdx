@@ -6,7 +6,7 @@ eyebrow: Reference
 title: Indexing guide
 description: Events and read-model rules for markets, lazy books, combos, parimutuel pools, resolution finality, and fee distribution.
 status: Reference
-updated: 2026-07-08
+updated: 2026-07-09
 order: 530
 ---
 
@@ -48,9 +48,9 @@ Resolver reward accrual and finalization events mark when trading-fee rewards be
 
 ## Fee distribution
 
-Every fee leg resolves in the transaction that produced it, so a fee event is final rather than pending a later claim. Indexers tracking protocol revenue must capture all sinks, not just treasury: maker and creator accruals on the fee router, the seniorPool leg into SeniorCapitalPool, the resolver leg accrued per epoch, and the evRisk leg pushed to EvRiskStakingRewards. The seniorPool and evRisk legs fall back to treasury when their recipient is ineligible, so a treasury receipt does not always mean the protocol fee alone.
+Every fee leg resolves in the transaction that produced it, so a fee event is final rather than pending a later claim. Indexers tracking protocol revenue must capture all sinks, not just treasury: maker and creator accruals on the fee router, the seniorPool leg into SeniorCapitalPool, the resolver leg accrued per epoch, and the etRisk leg pushed to EtRiskStakingRewards. The seniorPool and etRisk legs fall back to treasury when their recipient is ineligible, so a treasury receipt does not always mean the protocol fee alone.
 
-EvRisk staking events cover reward notification, staking and unstaking, claims, and the treasury fallback when a series is inactive or has no stakers.
+EtRisk staking events cover reward notification, staking and unstaking, claims, and the treasury fallback when a series is inactive or has no stakers.
 
 ## Combo indexing
 

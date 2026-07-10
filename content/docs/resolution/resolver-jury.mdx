@@ -6,13 +6,13 @@ eyebrow: Resolution
 title: Resolver identity and jury
 description: Resolver identities, EVE stake, epoch rotation, committee commit-reveal voting, appeals, and jury finality.
 status: Resolution
-updated: 2026-07-08
+updated: 2026-07-09
 order: 205
 ---
 
 ## Purpose
 
-The resolver jury is the finality path for disputes that cannot settle through optimistic creator settlement and bonded counter-proposals. It replaces the legacy EVE holder vote fallback.
+The resolver jury is the finality path for disputes that cannot settle through optimistic creator settlement and bonded counter-proposals.
 
 Resolvers participate through soulbound identity records, role flags, EVE stake, epoch rotation, and reputation. Dispute finality does not depend on a protocol operator manually deciding the outcome.
 
@@ -83,9 +83,9 @@ The registry is split across four facets: state-changing selectors, view selecto
 | `disputeView`, `committeeMembers`, `outcomeTally`, `revealedVote`, `provisionalResult` | Per-dispute jury state. |
 | `resolverReputation`, `creatorReputation` | Participation and agreement history. |
 
-## Deploy defaults
+## Deployment defaults
 
-Resolver jury economics are hardcoded at deploy, not env-driven. The seat stake is 100 EVE, the active epoch size is 16, committee sizes are 3 then 5, with one appeal round. All round phase windows are one hour, quorum is two, and randomness timeout is five minutes. Missed-commit, missed-reveal, and invalid-reveal slashes are 10, 20, and 30 percent respectively, with a one-day slash cooldown.
+Resolver jury economics are fixed at deployment. The seat stake is 100 EVE, the active epoch size is 16, committee sizes are 3 then 5, with one appeal round. All round phase windows are one hour, quorum is two, and randomness timeout is five minutes. Missed-commit, missed-reveal, and invalid-reveal slashes are 10, 20, and 30 percent respectively, with a one-day slash cooldown.
 
 ## UX requirements
 

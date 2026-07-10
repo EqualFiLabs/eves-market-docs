@@ -6,7 +6,7 @@ eyebrow: Markets
 title: Curve CLOB markets
 description: Maker curves, bids, asks, tick grids, execution, and inventory lifecycle for prediction books and combo books.
 status: Markets
-updated: 2026-05-24
+updated: 2026-07-09
 order: 130
 ---
 
@@ -114,7 +114,7 @@ Fills should pass expected curve generations or commitments. This prevents a tak
 
 ## Trade router
 
-The trade router facets wrap the fill path for the common user flows so a user does not have to pre-split or pre-wrap. `TradeRouterFacet` exposes `buyWithEveUSDC`, `buyWithUSDC`, `splitWithUSDC`, and `buyWithCollateral`; `TradeRouterSellFacet` exposes the matching sells plus `previewSellBest`. `buyWithUSDC` wraps USDC into eveUSDC inline using eveUSDC's privileged mint, and the router no longer self-calls the diamond, so execution stays in-process and cheap.
+The trade router facets wrap the fill path for the common user flows so a user does not have to pre-split or pre-wrap. `TradeRouterFacet` exposes `buyWithEveUSDC`, `buyWithUSDC`, `splitWithUSDC`, and `buyWithCollateral`; `TradeRouterSellFacet` exposes the matching sells plus `previewSellBest`. `buyWithUSDC` wraps USDC into eveUSDC inline using eveUSDC's privileged mint, so a funded USDC balance is enough to trade in a single transaction.
 
 ## Delayed orders
 
@@ -161,15 +161,15 @@ These scenarios assume each maker manages one 30-curve book set and sends one `u
 | Slow maker | `2 min` | `720` | `$6.48` | `$194.40` |
 | Passive maker | `5 min` | `288` | `$2.59` | `$77.76` |
 
-## Blast scenarios
+## Bulk refresh scenarios
 
-Blast costs scale by the number of 30-curve update batches. A 300-curve refresh is modeled as ten 30-curve batches; a 3,000-curve refresh is modeled as one hundred batches.
+Bulk refresh costs scale by the number of 30-curve update batches. A 300-curve refresh is modeled as ten 30-curve batches; a 3,000-curve refresh is modeled as one hundred batches.
 
 | Scenario | Curves refreshed | Batch transactions | Gas estimate | One-shot cost |
 | --- | ---: | ---: | ---: | ---: |
-| Single maker blast | `30` | `1` | `824,083` | `$0.009` |
-| Ten-maker blast | `300` | `10` | `8,240,830` | `$0.09` |
-| Hundred-maker blast | `3,000` | `100` | `82,408,300` | `$0.90` |
-| Thousand-maker blast | `30,000` | `1,000` | `824,083,000` | `$9.00` |
+| One maker | `30` | `1` | `824,083` | `$0.009` |
+| Ten makers | `300` | `10` | `8,240,830` | `$0.09` |
+| One hundred makers | `3,000` | `100` | `82,408,300` | `$0.90` |
+| One thousand makers | `30,000` | `1,000` | `824,083,000` | `$9.00` |
 
 Use this as an observed benchmark, not a protocol guarantee. Gas can still vary with calldata shape, active curve state, compiler output, chain pricing, and future implementation changes.

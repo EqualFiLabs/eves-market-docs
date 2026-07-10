@@ -6,7 +6,7 @@ eyebrow: Protocol docs
 title: Eves Market Protocol
 description: Onchain prediction markets with curve order books, native and CTF combo positions, parimutuel pools, parlay tickets, scheduled market creation, optimistic resolution, and configurable collateral.
 status: Protocol docs
-updated: 2026-07-08
+updated: 2026-07-09
 order: 10
 ---
 
@@ -16,7 +16,7 @@ Eves Market is an onchain prediction market protocol built around several tradin
 
 The default execution rail is eveUSDC. Users wrap USDC into 18 decimal eveUSDC, split collateral into outcome inventory, enter parimutuel pools, post maker curves, or route buys and sells in a single transaction from a USDC balance.
 
-The protocol also supports explicit collateral profiles. A profile can point a market at another ERC20 collateral, such as eveUSD from the optional WETH pairing pool, with its own payout unit, creation fee, parimutuel minimum, and parlay underwriting fee. Integrations should read market collateral and payout units from the market or profile instead of assuming every market settles in eveUSDC.
+The protocol also supports explicit collateral profiles. A profile can point a market at another ERC20 collateral, such as etUSD from the optional WETH pairing pool, with its own payout unit, creation fee, parimutuel minimum, and parlay underwriting fee. Integrations should read market collateral and payout units from the market or profile instead of assuming every market settles in eveUSDC.
 
 | Surface | Purpose |
 | --- | --- |
@@ -39,12 +39,12 @@ The protocol also supports explicit collateral profiles. A profile can point a m
 | Parimutuel pools | Pooled directional markets with early-conviction epoch multipliers. |
 | Scheduled creation | Future markets and market groups that can be indexed before trading opens. |
 | Optimistic resolution | Creator settlement, disputes, resolver jury escalation, and final payout reporting. |
-| Fee routing | Revenue fans out to makers, creators, treasury, the senior pool, resolvers, and EvRisk stakers. |
-| Collateral profiles | Default eveUSDC markets plus optional eveUSD-profile markets. |
+| Fee routing | Revenue fans out to makers, creators, treasury, the senior pool, resolvers, and EtRisk stakers. |
+| Collateral profiles | Default eveUSDC markets plus optional etUSD-profile markets. |
 
 ## Capital layer
 
-The base collateral is eveUSDC, an 18 decimal USDC wrapper that is also the default resolution bond token. An optional WETH-collateralized pairing pool mints a senior eveUSD tranche paired 1:1 with risk shares, and protocol revenue routes to a senior capital pool and to active risk-share stakers. See the collateral section for both.
+The base collateral is eveUSDC, an 18 decimal USDC wrapper that is also the default resolution bond token. An optional WETH-collateralized pairing pool mints a senior etUSD tranche paired 1:1 with risk shares, and protocol revenue routes to a senior capital pool and to active risk-share stakers. See the collateral section for both.
 
 ## Choose your path
 
